@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>marketDAO - Market-Based Governance Framework</title>
+    <title>MarketDAO - Market-Driven Governance</title>
     <style>
         :root {
-            --primary: #1a73e8;
-            --secondary: #34a853;
-            --dark: #202124;
-            --light: #f8f9fa;
-            --text: #202124;
-            --link: #1a73e8;
-            --link-hover: #174ea6;
-            --max-width: 800px;
+            --primary-color: #0066cc;
+            --secondary-color: #4CAF50;
+            --accent-color: #FF9800;
+            --text-color: #333;
+            --light-bg: #f5f7fa;
+            --dark-bg: #1a1a2e;
+            --card-bg: #ffffff;
+            --border-color: #ddd;
         }
         
         * {
@@ -23,148 +23,422 @@
         }
         
         body {
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
             line-height: 1.6;
-            color: var(--text);
-            background-color: var(--light);
-            padding: 1rem;
-        }
-        
-        header, main, footer {
-            max-width: var(--max-width);
+            color: var(--text-color);
+            max-width: 1200px;
             margin: 0 auto;
+            padding: 0 20px;
         }
         
         header {
-            margin-bottom: 2rem;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 1rem;
+            padding: 40px 0 20px;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 30px;
         }
         
         h1 {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: var(--primary-color);
         }
         
         h2 {
-            font-size: 1.5rem;
-            margin: 1.5rem 0 0.75rem;
-            color: var(--primary);
+            font-size: 1.8rem;
+            margin: 30px 0 15px;
+            color: var(--primary-color);
         }
         
-        p, ul {
-            margin-bottom: 1rem;
+        h3 {
+            font-size: 1.3rem;
+            margin: 20px 0 10px;
         }
         
-        ul {
-            padding-left: 1.5rem;
+        p, ul, ol {
+            margin-bottom: 20px;
+        }
+        
+        ul, ol {
+            padding-left: 30px;
         }
         
         li {
-            margin-bottom: 0.5rem;
+            margin-bottom: 8px;
         }
         
         a {
-            color: var(--link);
+            color: var(--primary-color);
             text-decoration: none;
         }
         
         a:hover {
-            color: var(--link-hover);
             text-decoration: underline;
         }
         
-        .cta {
-            display: inline-block;
-            background-color: var(--primary);
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            margin: 1rem 0;
-            font-weight: bold;
+        .tagline {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 20px;
         }
         
-        .cta:hover {
-            background-color: var(--link-hover);
+        .cta-button {
+            display: inline-block;
+            background-color: var(--primary-color);
             color: white;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin: 10px 5px;
+            transition: background-color 0.3s;
+        }
+        
+        .cta-button:hover {
+            background-color: #0055aa;
             text-decoration: none;
         }
         
+        .section {
+            margin: 40px 0;
+            padding: 20px;
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .feature-card {
+            padding: 20px;
+            background-color: var(--light-bg);
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        
+        .feature-card h3 {
+            color: var(--primary-color);
+            margin-top: 0;
+        }
+        
+        .nav {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .nav a {
+            padding: 8px 16px;
+            border-radius: 4px;
+            background-color: var(--light-bg);
+            transition: background-color 0.3s;
+        }
+        
+        .nav a:hover {
+            background-color: #e0e0e0;
+            text-decoration: none;
+        }
+        
+        .code-block {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-family: monospace;
+            margin-bottom: 20px;
+        }
+        
         footer {
-            margin-top: 2rem;
-            padding-top: 1rem;
-            border-top: 1px solid #ddd;
-            font-size: 0.9rem;
+            margin-top: 50px;
+            padding: 20px 0;
+            text-align: center;
+            border-top: 1px solid var(--border-color);
             color: #666;
         }
         
-        @media (max-width: 600px) {
+        /* Dark/Light mode toggle */
+        .mode-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        /* Dark mode styles */
+        body.dark-mode {
+            background-color: var(--dark-bg);
+            color: #f0f0f0;
+        }
+        
+        body.dark-mode .section,
+        body.dark-mode .feature-card {
+            background-color: #2a2a3c;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        body.dark-mode h1,
+        body.dark-mode h2,
+        body.dark-mode h3 {
+            color: #4d8fce;
+        }
+        
+        body.dark-mode .nav a {
+            background-color: #333344;
+            color: #e0e0e0;
+        }
+        
+        body.dark-mode .nav a:hover {
+            background-color: #44445a;
+        }
+        
+        body.dark-mode .code-block {
+            background-color: #333344;
+            color: #f0f0f0;
+        }
+        
+        body.dark-mode header,
+        body.dark-mode footer {
+            border-color: #444;
+        }
+        
+        /* Mobile responsive adjustments */
+        @media (max-width: 768px) {
             h1 {
-                font-size: 1.75rem;
+                font-size: 2rem;
             }
             
             h2 {
-                font-size: 1.25rem;
+                font-size: 1.5rem;
+            }
+            
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .section {
+                padding: 15px;
+                margin: 20px 0;
+            }
+            
+            .cta-button {
+                display: block;
+                margin: 10px 0;
+                text-align: center;
             }
         }
     </style>
 </head>
 <body>
+    <button class="mode-toggle" onclick="toggleDarkMode()">Toggle Dark Mode</button>
+    
     <header>
-        <h1>marketDAO</h1>
-        <p>A governance framework where voting rights can be dynamically traded during elections.</p>
+        <h1>MarketDAO</h1>
+        <p class="tagline">Bringing Market Forces to Group Decisions</p>
+        <div>
+            <a href="https://evronm.github.io/marketDAO/index.html" class="cta-button">Launch App</a>
+            <a href="https://github.com/evronm/marketDAO" class="cta-button">View on GitHub</a>
+        </div>
     </header>
     
-    <main>
-        <section>
-            <h2>The Market-Based Approach to Governance</h2>
-            <p>
-                Unlike traditional DAOs with static voting power, marketDAO introduces market dynamics to collective decision-making, allowing participants to express the strength of their preferences through buying and selling voting power.
-            </p>
-            <p>
-                With marketDAO, you can:
-            </p>
-            <ul>
-                <li>Buy additional voting power for issues you care deeply about</li>
-                <li>Sell your voting tokens if others value them more than you do</li>
-                <li>Speculate on election outcomes through voting token markets</li>
-            </ul>
-            <a href="https://evronm.github.io/marketDAO/index.html" class="cta">Try the App</a>
-        </section>
+    <nav class="nav">
+        <a href="#concept">Core Concept</a>
+        <a href="#features">Features</a>
+        <a href="#how-it-works">How It Works</a>
+        <a href="#implementation">Implementation</a>
+        <a href="#configuration">Configuration</a>
+        <a href="#deployment">Try It</a>
+    </nav>
+    
+    <section class="section" id="concept">
+        <h2>Core Concept</h2>
+        <p>
+            Unlike traditional DAOs where voting power is static, MarketDAO introduces a revolutionary approach:
+            <strong>tradable voting tokens for each election</strong>.
+        </p>
+        <p>
+            This creates a dynamic governance system where voters can:
+        </p>
+        <ul>
+            <li>Buy more voting power if they feel strongly about an issue</li>
+            <li>Sell their voting power if others value it more</li>
+            <li>Speculate on election outcomes through voting token markets</li>
+        </ul>
+        <p>
+            The result is a governance framework that more accurately captures the true strength of preferences 
+            and creates efficient markets around governance decisions.
+        </p>
+    </section>
+    
+    <section class="section" id="features">
+        <h2>Key Features</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h3>Saleable Voting Rights</h3>
+                <p>Voting tokens are freely transferable during elections, allowing market forces to influence governance outcomes.</p>
+            </div>
+            <div class="feature-card">
+                <h3>Multiple Proposal Types</h3>
+                <p>Create resolutions, treasury transfers, governance token minting, and token price update proposals.</p>
+            </div>
+            <div class="feature-card">
+                <h3>Flexible Support Thresholds</h3>
+                <p>Customizable support thresholds and quorum percentages for different governance needs.</p>
+            </div>
+            <div class="feature-card">
+                <h3>Treasury Management</h3>
+                <p>Support for ETH, ERC20, ERC721, and ERC1155 assets in the DAO treasury.</p>
+            </div>
+            <div class="feature-card">
+                <h3>Early Termination</h3>
+                <p>Elections can end early when a clear majority is reached, improving efficiency.</p>
+            </div>
+            <div class="feature-card">
+                <h3>ERC1155 Foundation</h3>
+                <p>Built on the ERC1155 standard for flexible token management, with token ID 0 reserved for governance tokens.</p>
+            </div>
+        </div>
+    </section>
+    
+    <section class="section" id="how-it-works">
+        <h2>How It Works</h2>
+        <ol>
+            <li>
+                <h3>Create a Proposal</h3>
+                <p>Governance token holders can submit various types of proposals.</p>
+            </li>
+            <li>
+                <h3>Support Phase</h3>
+                <p>Proposals need to reach a support threshold before triggering an election.</p>
+            </li>
+            <li>
+                <h3>Election</h3>
+                <p>When triggered, voting tokens are distributed 1:1 to all governance token holders.</p>
+            </li>
+            <li>
+                <h3>Trading Period</h3>
+                <p>During elections, voting tokens can be freely bought and sold.</p>
+            </li>
+            <li>
+                <h3>Voting</h3>
+                <p>Cast votes by sending voting tokens to YES/NO addresses.</p>
+            </li>
+            <li>
+                <h3>Execution</h3>
+                <p>If the proposal passes and meets quorum, it is automatically executed.</p>
+            </li>
+        </ol>
+    </section>
+    
+    <section class="section" id="implementation">
+        <h2>Implementation Details</h2>
+        <p>
+            MarketDAO is built on Solidity with a focus on security and flexibility:
+        </p>
+        <ul>
+            <li>Built on OpenZeppelin's ERC1155 implementation</li>
+            <li>Proposal lifecycle with support thresholds and voting periods</li>
+            <li>Inherits from ReentrancyGuard for security against reentrancy attacks</li>
+            <li>Separate proposal types for different governance actions</li>
+            <li>Factory pattern for easy proposal creation</li>
+        </ul>
         
-        <section>
-            <h2>Key Features</h2>
-            <ul>
-                <li>ERC1155-based governance tokens</li>
-                <li>Transferable voting rights during elections</li>
-                <li>Multiple proposal types (resolutions, treasury transfers, token minting)</li>
-                <li>Configurable governance parameters</li>
-                <li>Open-source implementation (MIT License)</li>
-            </ul>
-        </section>
-        
-        <section>
-            <h2>Current Status</h2>
-            <p>
-                marketDAO is currently deployed on the Polygon Amoy testnet with a functional web interface.
-            </p>
-            <ul>
-                <li>DAO Contract: <code>0xf188d689d78b58b9d3e1a841a9b9afb8f92ddf55</code></li>
-                <li>Network: Polygon Amoy (testnet)</li>
-            </ul>
-        </section>
-        
-        <section>
-            <h2>Get Involved</h2>
-            <p>
-                marketDAO is an open-source project in active development. You can contribute, explore the code, or simply learn more about this innovative approach to governance.
-            </p>
-            <a href="https://github.com/evronm/marketDAO" class="cta">GitHub Repository</a>
-        </section>
-    </main>
+        <h3>Architecture</h3>
+        <p>
+            The system consists of three main components:
+        </p>
+        <ul>
+            <li><strong>MarketDAO</strong>: The main contract that manages tokens, proposals, and voting</li>
+            <li><strong>Proposal</strong>: Base class for all proposal types with the proposal lifecycle</li>
+            <li><strong>ProposalFactory</strong>: Factory contract for creating different types of proposals</li>
+        </ul>
+    </section>
+    
+    <section class="section" id="configuration">
+        <h2>Configuration Parameters</h2>
+        <p>
+            When creating a new DAO, you can configure:
+        </p>
+        <ul>
+            <li><strong>Name</strong>: The name of the DAO</li>
+            <li><strong>Support Threshold</strong>: Percentage of tokens needed to trigger an election</li>
+            <li><strong>Quorum Percentage</strong>: Percentage of tokens needed for a valid election</li>
+            <li><strong>Maximum Proposal Age</strong>: Time before a proposal expires if it doesn't trigger an election</li>
+            <li><strong>Election Duration</strong>: Length of the voting period in blocks</li>
+            <li><strong>Treasury Configuration</strong>: What asset types the treasury can hold (ETH, ERC20, ERC721, ERC1155)</li>
+            <li><strong>Allow Minting</strong>: Whether new governance tokens can be minted through proposals</li>
+            <li><strong>Token Price</strong>: Initial price for direct token purchases (0 disables direct sales)</li>
+            <li><strong>Initial Token Distribution</strong>: Starting allocation of governance tokens</li>
+        </ul>
+    </section>
+    
+    <section class="section" id="deployment">
+        <h2>Try It Out</h2>
+        <p>
+            MarketDAO is deployed on the Polygon Amoy testnet and ready for you to experiment with:
+        </p>
+        <ul>
+            <li><strong>Live Demo</strong>: <a href="https://evronm.github.io/marketDAO/index.html" target="_blank">https://evronm.github.io/marketDAO/index.html</a></li>
+            <li><strong>DAO Contract</strong>: 0xf188d689d78b58b9d3e1a841a9b9afb8f92ddf55</li>
+            <li><strong>Factory Contract</strong>: 0xc609fa60239116ecee53af12f733eb0214d7b1ad</li>
+        </ul>
+        <p>
+            You'll need a wallet connected to the Polygon Amoy testnet to interact with the demo.
+        </p>
+    </section>
+    
+    <section class="section">
+        <h2>Future Possibilities</h2>
+        <p>
+            MarketDAO is just getting started, with plans for:
+        </p>
+        <ul>
+            <li>Resolution enhancements: Expiring resolutions, cancellation proposals</li>
+            <li>Multiple choice proposals beyond binary YES/NO</li>
+            <li>Variable election lengths based on proposal type</li>
+            <li>Staking mechanisms to prevent proposal spam</li>
+            <li>Enhanced market integrations for voting token exchanges</li>
+        </ul>
+    </section>
     
     <footer>
-        <p>&copy; 2024 marketDAO | <a href="https://github.com/evronm/marketDAO">GitHub</a></p>
+        <p>
+            &copy; 2025 MarketDAO - <a href="https://marketdao.dev">marketdao.dev</a>
+        </p>
+        <p>
+            <a href="https://github.com/evronm/marketDAO">GitHub</a> |
+            <a href="https://evronm.github.io/marketDAO/index.html">Demo App</a>
+        </p>
     </footer>
+    
+    <script>
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            
+            // Save preference to localStorage
+            if (document.body.classList.contains('dark-mode')) {
+                localStorage.setItem('darkMode', 'enabled');
+            } else {
+                localStorage.setItem('darkMode', 'disabled');
+            }
+        }
+        
+        // Check for saved preference
+        document.addEventListener('DOMContentLoaded', function() {
+            if (localStorage.getItem('darkMode') === 'enabled') {
+                document.body.classList.add('dark-mode');
+            }
+        });
+    </script>
 </body>
 </html>
