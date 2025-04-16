@@ -1,0 +1,18 @@
+title: MarketDAO
+description: Bringing Market Forces to Group Decisions
+baseurl: "/marketDAO-site"
+url: ""
+github_username: evronm
+
+# Build settings
+markdown: kramdown
+theme: minima
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor

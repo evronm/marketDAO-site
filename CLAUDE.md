@@ -2,21 +2,24 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Commands
-- Validate HTML: `html-validate *.html`
-- Format code: `prettier --write "**/*.{html,css,js}"`
-- Test: Open in browser and verify mobile responsiveness
+## Build & Dev Commands
+- Install dependencies: `bundle install`
+- Start local dev server: `bundle exec jekyll serve`
+- Build site: `bundle exec jekyll build`
+- Check for errors: `bundle exec jekyll doctor`
 
 ## Code Style Guidelines
-- **Structure**: Plain HTML/CSS with minimal vanilla JavaScript
-- **Mobile-First**: Use responsive design with flexible layouts and media queries
-- **Text-Forward**: Prioritize typography, readability, and high contrast
-- **CSS**: Use CSS custom properties for theming
-- **Naming**: 
-  - HTML IDs: camelCase
-  - CSS classes: kebab-case
-  - JS functions: camelCase
-- **JavaScript**: Only when necessary, no frameworks
-- **Accessibility**: Follow WCAG guidelines for text contrast and keyboard navigation
-- **Performance**: Optimize images, minimize dependencies
-- **Cross-Browser**: Test in Chrome, Firefox, Safari, Edge
+- HTML: Use semantic elements, correctly nested tags
+- CSS: Use CSS variables (defined in :root), mobile-first design
+- JavaScript: ES6+, keep scripts minimal and focused
+- Indentation: 2 spaces for all languages
+- File Organization: Keep CSS in scss files, JS in separate files
+- Naming: Use kebab-case for CSS classes, camelCase for JS variables/functions
+- Dark Mode: Support light/dark mode toggle with localStorage persistence
+
+## Jekyll Structure
+- Use _layouts for templates
+- Use _includes for reusable components
+- Use front matter (---) in markdown files for page metadata
+- Use {{ site.baseurl }} for internal links
+- Use relative_url filter for asset paths
