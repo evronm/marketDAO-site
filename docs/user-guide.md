@@ -3,7 +3,6 @@ layout: page
 title: MarketDAO User Guide
 permalink: /docs/user-guide/
 ---
-# MarketDAO User Guide
 
 ## Table of Contents
 
@@ -128,4 +127,65 @@ For a proposal to trigger an election, it needs to reach the support threshold. 
 2. Find the proposal you wish to support
 3. Enter the amount of support to add (this is limited by your governance token holdings)
 4. Click "Add Support"
-5. Confirm the
+5. Confirm the transaction in your wallet
+6. Once the support threshold is reached, the proposal will automatically trigger an election
+
+## Participating in Elections
+
+When a proposal reaches the support threshold, an election is triggered. This is where MarketDAO's unique market-driven governance comes into play.
+
+### Understanding the Election Process
+
+The election process follows these steps:
+
+1. **Token Distribution:** When an election starts, every governance token holder receives an equal number of voting tokens (Token ID corresponding to the proposal ID)
+2. **Trading Period:** During the election, voting tokens can be freely bought and sold
+3. **Voting Period:** Voting tokens can be used to cast votes by sending them to YES or NO addresses
+4. **Result Determination:** At the end of the election period, the proposal passes if the YES votes exceed NO votes and the quorum threshold is met
+
+### Voting on Proposals
+
+To vote on an active proposal:
+
+1. Navigate to the "Elections" tab
+2. Find the active election you wish to vote on
+3. Select "Vote YES" or "Vote NO"
+4. Enter the number of voting tokens to use
+5. Click "Cast Vote"
+6. Confirm the transaction in your wallet
+
+### Trading Voting Tokens
+
+The ability to trade voting tokens is what makes MarketDAO unique. To trade voting tokens:
+
+1. Navigate to the "Elections" tab
+2. Find the election with voting tokens you want to trade
+3. Click on "Trade Tokens"
+4. You'll be redirected to the marketplace where you can list your tokens for sale or purchase tokens from others
+
+> **Note:** You can also use other compatible marketplaces that support ERC1155 tokens.
+
+## Viewing Proposal History
+
+To view past proposals and elections:
+
+1. Navigate to the "History" tab
+2. Browse through the list of past proposals
+3. Click on any proposal to view details including support levels, voting results, and transaction history
+
+## FAQ
+
+**Q: Can I get my governance tokens back after voting?**
+A: No, once governance tokens are used to create or support proposals, they remain locked until the proposal process completes.
+
+**Q: What happens if I sell my voting tokens during an election?**
+A: When you sell voting tokens, you're effectively transferring your voting power to the buyer. The buyer can then use those tokens to vote or sell them to others.
+
+**Q: Why would someone buy my voting tokens?**
+A: People may buy voting tokens if they feel strongly about the outcome of a proposal. This creates a market-based assessment of the proposal's importance to different stakeholders.
+
+**Q: What happens if the quorum isn't reached?**
+A: If the quorum threshold isn't met by the end of the election period, the proposal fails regardless of the YES/NO vote balance.
+
+**Q: Can proposals be canceled?**
+A: Once created, proposals cannot be canceled. They will either fail to reach the support threshold and expire, or they will proceed to an election and be decided by voting.

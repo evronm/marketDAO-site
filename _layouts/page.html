@@ -7,31 +7,85 @@
     <link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">
     <style>
     {% include styles.css %}
+    
+    /* Additional styles for documentation pages */
+    .doc-header {
+        padding: 40px 0 20px;
+        text-align: center;
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 30px;
+    }
+    
+    .doc-nav {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 20px 0;
+    }
+    
+    .doc-nav a {
+        padding: 8px 16px;
+        border-radius: 4px;
+        background-color: var(--light-bg);
+        transition: background-color 0.3s;
+    }
+    
+    .doc-nav a:hover {
+        background-color: #e0e0e0;
+        text-decoration: none;
+    }
+    
+    .breadcrumb {
+        margin-bottom: 20px;
+        padding: 10px;
+        background-color: var(--light-bg);
+        border-radius: 4px;
+    }
+    
+    body.dark-mode .breadcrumb {
+        background-color: #333344;
+    }
+    
+    body.dark-mode .doc-nav a {
+        background-color: #333344;
+        color: #e0e0e0;
+    }
+    
+    body.dark-mode .doc-nav a:hover {
+        background-color: #44445a;
+    }
     </style>
 </head>
 <body>
     <button class="mode-toggle" onclick="toggleDarkMode()">Toggle Dark Mode</button>
     
-    <header>
+    <header class="doc-header">
         <h1>{{ site.title }}</h1>
         <p class="tagline">{{ site.description }}</p>
         <div>
+            <a href="{{ '/' | relative_url }}" class="cta-button">Home</a>
             <a href="https://evronm.github.io/marketDAO/index.html" class="cta-button">Launch App</a>
             <a href="https://github.com/evronm/marketDAO" class="cta-button">View on GitHub</a>
         </div>
     </header>
     
-    <nav class="nav">
-        <a href="#concept">Core Concept</a>
-        <a href="#features">Features</a>
-        <a href="#how-it-works">How It Works</a>
-        <a href="#implementation">Implementation</a>
-        <a href="#configuration">Configuration</a>
-        <a href="#deployment">Try It</a>
-        <a href="{{ '/docs/' | relative_url }}">Documentation</a>
-    </nav>
+    <div class="breadcrumb">
+        <a href="{{ '/' | relative_url }}">Home</a> &gt; 
+        {% if page.permalink contains '/docs/' %}
+            <a href="{{ '/docs/' | relative_url }}">Docs</a> &gt; 
+        {% endif %}
+        {{ page.title }}
+    </div>
     
-    {{ content }}
+    <div class="doc-nav">
+        <a href="{{ '/docs/user-guide/' | relative_url }}">User Guide</a>
+        <!-- Add more documentation links as needed -->
+    </div>
+    
+    <main class="section">
+        {{ content }}
+    </main>
     
     <footer>
         <p>
