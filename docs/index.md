@@ -11,6 +11,7 @@ Welcome to the MarketDAO documentation. This section provides detailed informati
 ## Available Documentation
 
 - [**User Guide**]({{ site.baseurl }}/docs/user-guide/) - Comprehensive guide to using the MarketDAO platform
+- [**Technical Reference**]({{ site.baseurl }}/docs/technical-reference/) - Detailed technical documentation for developers
   
 ## Additional Resources
 

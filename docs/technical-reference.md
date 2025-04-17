@@ -3,7 +3,6 @@ layout: page
 title: MarketDAO Technical Reference
 permalink: /docs/technical-reference/
 ---
-# MarketDAO Technical Reference
 
 ## Table of Contents
 
