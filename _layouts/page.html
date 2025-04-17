@@ -64,22 +64,22 @@
         <h1>{{ site.title }}</h1>
         <p class="tagline">{{ site.description }}</p>
         <div>
-            <a href="{{ '/' | relative_url }}" class="cta-button">Home</a>
+            <a href="/" class="cta-button">Home</a>
             <a href="https://evronm.github.io/marketDAO/index.html" class="cta-button">Launch App</a>
             <a href="https://github.com/evronm/marketDAO" class="cta-button">View on GitHub</a>
         </div>
     </header>
     
     <div class="breadcrumb">
-        <a href="{{ '/' | relative_url }}">Home</a> &gt; 
+        <a href="/">Home</a> &gt; 
         {% if page.permalink contains '/docs/' %}
-            <a href="{{ '/docs/' | relative_url }}">Docs</a> &gt; 
+            <a href="/docs/">Docs</a> &gt; 
         {% endif %}
         {{ page.title }}
     </div>
     
     <div class="doc-nav">
-        <a href="{{ '/docs/user-guide/' | relative_url }}">User Guide</a>
+        <a href="/docs/user-guide/">User Guide</a>
         <!-- Add more documentation links as needed -->
     </div>
     
