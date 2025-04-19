@@ -138,6 +138,16 @@ a:hover {
     text-decoration: none;
 }
 
+.nav a.highlight-nav {
+    background-color: var(--accent-color);
+    color: white;
+    font-weight: bold;
+}
+
+.nav a.highlight-nav:hover {
+    background-color: #e67e00;
+}
+
 .code-block {
     background-color: #f4f4f4;
     padding: 15px;
@@ -193,6 +203,15 @@ body.dark-mode .nav a {
 
 body.dark-mode .nav a:hover {
     background-color: #44445a;
+}
+
+body.dark-mode .nav a.highlight-nav {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+body.dark-mode .nav a.highlight-nav:hover {
+    background-color: #e67e00;
 }
 
 body.dark-mode .code-block {
