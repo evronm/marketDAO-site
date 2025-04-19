@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#0066cc"/>
+  
+  <!-- Gradient overlay -->
+  <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" style="stop-color:#0066cc;stop-opacity:1" />
+    <stop offset="100%" style="stop-color:#004080;stop-opacity:1" />
+  </linearGradient>
+  <rect width="1200" height="630" fill="url(#grad)"/>
+  
+  <!-- Main title -->
+  <text x="600" y="240" font-family="Arial, sans-serif" font-size="90" font-weight="bold" fill="white" text-anchor="middle">MarketDAO</text>
+  
+  <!-- Tagline -->
+  <text x="600" y="340" font-family="Arial, sans-serif" font-size="40" fill="white" text-anchor="middle">Bringing Market Forces to Group Decisions</text>
+  
+  <!-- Decorative elements -->
+  <circle cx="300" cy="500" r="80" fill="#FF9800" opacity="0.7"/>
+  <circle cx="900" cy="500" r="80" fill="#4CAF50" opacity="0.7"/>
+  <circle cx="600" cy="500" r="80" fill="#E0E0E0" opacity="0.7"/>
+</svg>
