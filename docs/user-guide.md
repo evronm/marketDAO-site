@@ -54,7 +54,7 @@ After connecting your wallet, you'll see the Dashboard, which displays:
 
 Governance tokens (Token ID 0) are the foundation of MarketDAO participation. They allow you to:
 - Create and support proposals
-- Receive voting tokens during elections
+- Claim voting tokens during elections
 - Participate in DAO governance
 
 ### Acquiring Governance Tokens
@@ -66,6 +66,16 @@ There are two ways to acquire governance tokens:
 2. **Secondary Markets:** Governance tokens can be bought and sold on supported marketplaces. Look for the "Buy/Sell on Rarible" link on the Dashboard for direct access.
 
 > **Note:** If the token price is set to 0, direct purchases are disabled.
+
+#### Token Vesting
+
+Governance tokens acquired through direct purchase are subject to a vesting period:
+- **Vesting Period:** Purchased tokens are locked for a configured number of blocks
+- **Unlocking:** Tokens gradually become available for governance as they vest
+- **Governance Rights:** Only vested (unlocked) tokens can be used to support proposals or claim voting tokens
+- **Trading:** You can transfer governance tokens at any time, but the vesting schedule transfers with them
+
+This vesting mechanism protects the DAO from hostile takeover attempts where an attacker might try to purchase a large number of tokens and immediately vote themselves control of the treasury.
 
 ### Checking Your Balance
 
@@ -138,10 +148,25 @@ When a proposal reaches the support threshold, an election is triggered. This is
 
 The election process follows these steps:
 
-1. **Token Distribution:** When an election starts, every governance token holder receives an equal number of voting tokens (Token ID corresponding to the proposal ID)
+1. **Claim Period:** When an election starts, governance token holders can claim voting tokens (Token ID corresponding to the proposal ID) equal to their vested governance token balance
 2. **Trading Period:** During the election, voting tokens can be freely bought and sold
 3. **Voting Period:** Voting tokens can be used to cast votes by sending them to YES or NO addresses
 4. **Result Determination:** At the end of the election period, the proposal passes if the YES votes exceed NO votes and the quorum threshold is met
+
+#### Claiming Voting Tokens
+
+MarketDAO uses a "lazy minting" approach to reduce gas costs:
+
+1. Navigate to the "Elections" tab to view active elections
+2. For each election, you'll see a "Claim Voting Tokens" button if you haven't claimed yet
+3. Click the button to claim your voting tokens (you'll receive tokens equal to your vested governance token balance)
+4. Confirm the transaction in your wallet
+5. Once claimed, you can vote with your tokens or trade them on supported marketplaces
+
+**Why lazy minting?** Instead of automatically distributing voting tokens to all governance token holders when an election starts (which would cost significant gas), tokens are only minted when holders actively claim them. This means:
+- Proposal creators don't pay massive gas fees to distribute tokens
+- Only participants who actually want to vote pay gas to claim their tokens
+- Non-participating token holders don't waste gas on tokens they won't use
 
 ### Voting on Proposals
 
@@ -174,6 +199,15 @@ To view past proposals and elections:
 3. Click on any proposal to view details including support levels, voting results, and transaction history
 
 ## FAQ
+
+**Q: What happens to my purchased governance tokens during the vesting period?**
+A: During the vesting period, you own the tokens and can transfer them, but you cannot use them for governance (supporting proposals or claiming voting tokens) until they vest. The vesting schedule transfers with the tokens if you sell them.
+
+**Q: Do I have to claim voting tokens for every election?**
+A: Yes, voting tokens must be claimed separately for each election. You can only claim once per election, and the amount you receive equals your vested governance token balance at the time of claim.
+
+**Q: What if I don't claim my voting tokens?**
+A: If you don't claim your voting tokens, you won't be able to vote in that election. However, your vested governance tokens are still counted in quorum and majority calculations, so unclaimed tokens don't affect the validity of the election results.
 
 **Q: Can I get my governance tokens back after voting?**
 A: No, once governance tokens are used to create or support proposals, they remain locked until the proposal process completes.

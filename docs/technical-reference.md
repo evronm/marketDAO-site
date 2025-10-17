@@ -7,13 +7,14 @@ permalink: /docs/technical-reference/
 ## Table of Contents
 
 1. [Contract Architecture](#contract-architecture)
-2. [MarketDAO Contract](#marketdao-contract)
-3. [Proposal Base Contract](#proposal-base-contract)
-4. [Proposal Types](#proposal-types)
-5. [ProposalFactory Contract](#proposalfactory-contract)
-6. [Token Specifications](#token-specifications)
-7. [Deployment Guide](#deployment-guide)
-8. [Development Reference](#development-reference)
+2. [Security Features](#security-features)
+3. [MarketDAO Contract](#marketdao-contract)
+4. [Proposal Base Contract](#proposal-base-contract)
+5. [Proposal Types](#proposal-types)
+6. [ProposalFactory Contract](#proposalfactory-contract)
+7. [Token Specifications](#token-specifications)
+8. [Deployment Guide](#deployment-guide)
+9. [Development Reference](#development-reference)
 
 ## Contract Architecture
 
@@ -38,6 +39,81 @@ ERC1155, ReentrancyGuard
       └── TokenPriceProposal
 ```
 
+## Security Features
+
+MarketDAO implements two critical security features to protect against common DAO attacks and optimize gas costs:
+
+### Governance Token Vesting
+
+**Purpose**: Prevents a malicious actor from purchasing more governance tokens than the total outstanding supply and immediately voting themselves the entire treasury.
+
+**Implementation**: (MarketDAO.sol:24-32, 96-106, 119-125)
+
+When governance tokens are purchased through the `purchaseTokens()` function, they are subject to a configurable vesting period. The tokens are held by the buyer but cannot be used for governance until they vest.
+
+- **Vesting Period**: Configured at DAO deployment via the `vestingPeriod` parameter (measured in blocks)
+- **Vesting Schedules**: Each token purchase creates a new vesting schedule with an unlock block number
+- **Vested Balance**: The `vestedBalance(address holder)` function calculates how many tokens are currently unlocked and available for governance
+- **Governance Restrictions**: All governance functions (adding proposal support, voting) check `vestedBalance()` rather than total token balance
+
+**Attack Prevention**: An attacker who purchases a large number of tokens must wait for the vesting period to elapse before they can use those tokens to support proposals or vote, giving the DAO community time to respond.
+
+```solidity
+struct VestingSchedule {
+    uint256 amount;
+    uint256 unlockBlock;
+}
+
+mapping(address => VestingSchedule[]) private vestingSchedules;
+
+function vestedBalance(address holder) public view returns (uint256) {
+    uint256 locked = 0;
+    VestingSchedule[] storage schedules = vestingSchedules[holder];
+    for (uint256 i = 0; i < schedules.length; i++) {
+        if (block.number < schedules[i].unlockBlock) {
+            locked += schedules[i].amount;
+        }
+    }
+    return balanceOf(holder, GOVERNANCE_TOKEN_ID) - locked;
+}
+```
+
+### Lazy Vote Token Distribution
+
+**Purpose**: Reduces gas costs by avoiding the need to distribute voting tokens to all governance token holders when an election is triggered. Only users who actually participate in voting pay the gas to claim their voting tokens.
+
+**Implementation**: (Proposal.sol:24, 122-137)
+
+When an election is triggered, voting tokens are not minted upfront. Instead:
+
+- **On-Demand Minting**: Users call `claimVotingTokens()` during the election period to receive their voting tokens
+- **One-Time Claim**: The `hasClaimed` mapping ensures each holder can only claim once per election
+- **Proportional Distribution**: Users receive voting tokens equal to their vested governance token balance at the time of claim
+- **Vote Calculation**: The system calculates total possible votes based on all governance holders' vested balances, not just claimed tokens
+
+**Gas Savings**: In a DAO with many token holders, only active participants pay gas to claim voting tokens, rather than the proposal creator paying gas to distribute to everyone upfront.
+
+```solidity
+mapping(address => bool) public hasClaimed;
+
+function claimVotingTokens() external onlyDuringElection {
+    require(!hasClaimed[msg.sender], "Already claimed voting tokens");
+
+    uint256 vestedBal = dao.vestedBalance(msg.sender);
+    require(vestedBal > 0, "No vested governance tokens to claim");
+
+    hasClaimed[msg.sender] = true;
+    dao.mintVotingTokens(msg.sender, votingTokenId, vestedBal);
+}
+
+function getClaimableAmount(address holder) external view returns (uint256) {
+    if (!electionTriggered) return 0;
+    if (hasClaimed[holder]) return 0;
+    if (block.number >= electionStart + dao.electionDuration()) return 0;
+    return dao.vestedBalance(holder);
+}
+```
+
 ## MarketDAO Contract
 
 `MarketDAO.sol` implements the core DAO functionality, inheriting from OpenZeppelin's `ERC1155` and `ReentrancyGuard`.
@@ -53,6 +129,8 @@ ERC1155, ReentrancyGuard
 | `electionDuration` | `uint256` | Length of election in blocks |
 | `allowMinting` | `bool` | Whether new governance tokens can be minted |
 | `tokenPrice` | `uint256` | Price per token in wei (0 = direct sales disabled) |
+| `vestingPeriod` | `uint256` | Vesting period for purchased tokens in blocks |
+| `vestingSchedules` | `mapping(address => VestingSchedule[])` | Tracks vesting schedules per holder |
 | `GOVERNANCE_TOKEN_ID` | `uint256` | Constant set to 0 |
 | `nextVotingTokenId` | `uint256` | Next ID to use for voting tokens |
 | `activeProposals` | `mapping(address => bool)` | Tracks active proposals |
@@ -78,6 +156,7 @@ constructor(
     uint256 _electionDuration,
     bool _allowMinting,
     uint256 _tokenPrice,
+    uint256 _vestingPeriod,
     string[] memory _treasuryConfig,
     address[] memory _initialHolders,
     uint256[] memory _initialAmounts
@@ -89,8 +168,11 @@ constructor(
 #### Token Management
 
 ```solidity
-// Direct token purchase function
+// Direct token purchase function (creates vesting schedule)
 function purchaseTokens() external payable nonReentrant
+
+// Calculate unlocked (vested) governance tokens for a holder
+function vestedBalance(address holder) public view returns (uint256)
 
 // Mint governance tokens (called by proposals)
 function mintGovernanceTokens(address to, uint256 amount) external
@@ -178,6 +260,7 @@ function safeBatchTransferFrom(
 | `yesVoteAddress` | `address` | Address for YES votes |
 | `noVoteAddress` | `address` | Address for NO votes |
 | `executed` | `bool` | Whether proposal has been executed |
+| `hasClaimed` | `mapping(address => bool)` | Tracks which holders have claimed voting tokens |
 
 ### Constructor
 
@@ -191,7 +274,7 @@ constructor(
 ### Key Functions
 
 ```solidity
-// Add support to a proposal
+// Add support to a proposal (checks vested balance)
 function addSupport(uint256 amount) external
 
 // Remove support from a proposal
@@ -202,6 +285,12 @@ function canTriggerElection() public view returns (bool)
 
 // Internal function to trigger an election
 function _triggerElection() internal
+
+// Claim voting tokens during an election (lazy minting)
+function claimVotingTokens() external
+
+// View how many voting tokens an address can claim
+function getClaimableAmount(address holder) external view returns (uint256)
 
 // Check for early termination of election
 function checkEarlyTermination() external virtual
@@ -352,14 +441,18 @@ function getProposal(uint256 index) external view returns (address)
 - **Usage**: Create and support proposals, receive voting tokens
 - **Distribution**: Initial allocation, direct purchase, or mint proposals
 - **Transfer**: Freely transferable ERC1155 tokens
+- **Vesting**: Purchased tokens are subject to vesting period before they can be used for governance
+- **Governance Rights**: Only vested (unlocked) tokens can be used to support proposals or participate in voting
 
 ### Voting Tokens (IDs 1+)
 
-- **Creation**: Minted at election start, one unique ID per election
-- **Distribution**: 1:1 with governance tokens at election trigger
+- **Creation**: One unique token ID per election
+- **Distribution**: Lazy minting - holders must claim tokens during election period by calling `claimVotingTokens()`
+- **Amount**: 1:1 with the holder's vested governance token balance at time of claim
 - **Usage**: Sent to YES/NO addresses to vote
 - **Transfer**: Freely transferable during election period
 - **Lifecycle**: Become worthless after election concludes
+- **Gas Efficiency**: Only participants who vote pay gas to claim their tokens
 
 ## Deployment Guide
 
@@ -387,6 +480,7 @@ uint256 _maxProposalAge,       // Max age of proposal in blocks
 uint256 _electionDuration,     // Length of election in blocks
 bool _allowMinting,            // Whether new governance tokens can be minted
 uint256 _tokenPrice,           // Price per token in wei (0 = direct sales disabled)
+uint256 _vestingPeriod,        // Vesting period for purchased tokens in blocks (0 = no vesting)
 string[] _treasuryConfig,      // Array of supported asset types (e.g., ["ETH", "ERC20"])
 address[] _initialHolders,     // Array of initial token holder addresses
 uint256[] _initialAmounts      // Array of initial token amounts

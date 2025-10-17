@@ -31,6 +31,14 @@ title: Market-Driven Governance
             <p>Voting tokens are freely transferable during elections, allowing market forces to influence governance outcomes.</p>
         </div>
         <div class="feature-card">
+            <h3>Governance Token Vesting</h3>
+            <p>Purchased governance tokens are subject to a vesting period, protecting the DAO from hostile takeover attempts.</p>
+        </div>
+        <div class="feature-card">
+            <h3>Lazy Vote Token Distribution</h3>
+            <p>Voting tokens are minted on-demand as participants claim them, reducing gas costs for proposal creators.</p>
+        </div>
+        <div class="feature-card">
             <h3>Multiple Proposal Types</h3>
             <p>Create resolutions, treasury transfers, governance token minting, and token price update proposals.</p>
         </div>
@@ -66,7 +74,7 @@ title: Market-Driven Governance
         </li>
         <li>
             <h3>Election</h3>
-            <p>When triggered, voting tokens are distributed 1:1 to all governance token holders.</p>
+            <p>When triggered, governance token holders can claim voting tokens 1:1 with their vested governance token balance.</p>
         </li>
         <li>
             <h3>Trading Period</h3>
@@ -121,6 +129,7 @@ title: Market-Driven Governance
         <li><strong>Treasury Configuration</strong>: What asset types the treasury can hold (ETH, ERC20, ERC721, ERC1155)</li>
         <li><strong>Allow Minting</strong>: Whether new governance tokens can be minted through proposals</li>
         <li><strong>Token Price</strong>: Initial price for direct token purchases (0 disables direct sales)</li>
+        <li><strong>Vesting Period</strong>: Vesting period for purchased governance tokens in blocks (0 disables vesting)</li>
         <li><strong>Initial Token Distribution</strong>: Starting allocation of governance tokens</li>
     </ul>
 </section>
