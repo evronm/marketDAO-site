@@ -511,11 +511,10 @@ forge fmt
 ./deploy.sh
 ```
 
-### Current Deployment
+### GitHub Repository
 
-- **Frontend**: [https://evronm.github.io/marketDAO/index.html](https://evronm.github.io/marketDAO/index.html)
-- **DAO Contract**: 0xf188d689d78b58b9d3e1a841a9b9afb8f92ddf55 (Polygon Amoy testnet)
-- **Factory Contract**: 0xc609fa60239116ecee53af12f733eb0214d7b1ad (Polygon Amoy testnet)
+- **Source Code**: [https://github.com/evronm/marketDAO](https://github.com/evronm/marketDAO)
+- **Contracts**: Located in the `src/` directory
 
 ### Key Dependencies
 

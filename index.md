@@ -135,17 +135,17 @@ title: Market-Driven Governance
 </section>
 
 <section class="section" id="deployment">
-    <h2>Try It Out</h2>
+    <h2>Get Started</h2>
     <p>
-        MarketDAO is deployed on the Polygon Amoy testnet and ready for you to experiment with:
+        MarketDAO is open source and ready for deployment:
     </p>
     <ul>
-        <li><strong>Live Demo</strong>: <a href="https://evronm.github.io/marketDAO/index.html" target="_blank">https://evronm.github.io/marketDAO/index.html</a></li>
-        <li><strong>DAO Contract</strong>: 0xf188d689d78b58b9d3e1a841a9b9afb8f92ddf55</li>
-        <li><strong>Factory Contract</strong>: 0xc609fa60239116ecee53af12f733eb0214d7b1ad</li>
+        <li><strong>Repository</strong>: <a href="https://github.com/evronm/marketDAO" target="_blank">https://github.com/evronm/marketDAO</a></li>
+        <li><strong>Contracts</strong>: See the <code>src/</code> directory for all Solidity contracts</li>
+        <li><strong>Frontend</strong>: Included in the repository and compatible with the latest contracts</li>
     </ul>
     <p>
-        You'll need a wallet connected to the Polygon Amoy testnet to interact with the demo.
+        Clone the repository and follow the deployment instructions in the <a href="{{ site.baseurl }}/docs/technical-reference/#deployment-guide">Technical Reference</a> to deploy your own instance on any EVM-compatible network.
     </p>
 </section>
 

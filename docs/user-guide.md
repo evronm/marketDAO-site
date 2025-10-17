@@ -32,15 +32,15 @@ MarketDAO is a governance framework that brings market forces to group decisions
 
 ## Getting Started
 
-### Connecting Your Wallet
+### Deploying a MarketDAO Instance
 
-1. Visit the MarketDAO application at [https://evronm.github.io/marketDAO/index.html](https://evronm.github.io/marketDAO/index.html)
-2. Click the "Connect Wallet" button
-3. If prompted, select your wallet provider (MetaMask, etc.)
-4. Approve the connection request in your wallet
-5. Once connected, your wallet address will be displayed and you'll gain access to the full functionality of the platform
+To use MarketDAO, you'll need to deploy your own instance:
 
-> **Note:** MarketDAO is currently deployed on the Polygon Amoy testnet. Make sure your wallet is configured for this network.
+1. Clone the repository from [https://github.com/evronm/marketDAO](https://github.com/evronm/marketDAO)
+2. Follow the deployment instructions in the [Technical Reference]({{ site.baseurl }}/docs/technical-reference/#deployment-guide)
+3. Use the included frontend to interact with your deployed contracts
+
+> **Note:** The repository includes a frontend application that is compatible with the current contracts. This user guide describes the features and workflow using that frontend.
 
 ### Understanding the Dashboard
 
@@ -63,7 +63,7 @@ There are two ways to acquire governance tokens:
 
 1. **Direct Purchase:** On the Dashboard, enter the amount of tokens you wish to purchase and click "Purchase". The cost will be calculated based on the current token price.
 
-2. **Secondary Markets:** Governance tokens can be bought and sold on supported marketplaces. Look for the "Buy/Sell on Rarible" link on the Dashboard for direct access.
+2. **Secondary Markets:** Governance tokens can be bought and sold on supported ERC1155 marketplaces. Look for the "Buy/Sell on Rarible" link on the Dashboard for direct access.
 
 > **Note:** If the token price is set to 0, direct purchases are disabled.
 
