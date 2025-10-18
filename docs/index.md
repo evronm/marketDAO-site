@@ -16,8 +16,7 @@ Welcome to the MarketDAO documentation. This section provides detailed informati
   
 ## Additional Resources
 
-- [MarketDAO App](https://evronm.github.io/marketDAO/index.html) - Access the live application
-- [GitHub Repository](https://github.com/evronm/marketDAO) - View the source code
+- [GitHub Repository](https://github.com/evronm/marketDAO) - View the source code and deploy your own instance
 
 ## Support
 
