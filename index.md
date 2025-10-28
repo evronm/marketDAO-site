@@ -32,11 +32,23 @@ title: Market-Driven Governance
         </div>
         <div class="feature-card">
             <h3>Governance Token Vesting</h3>
-            <p>Purchased governance tokens are subject to a vesting period, protecting the DAO from hostile takeover attempts.</p>
+            <p>Purchased governance tokens are subject to a vesting period with automatic cleanup and consolidation, protecting the DAO from hostile takeover attempts.</p>
         </div>
         <div class="feature-card">
             <h3>Lazy Vote Token Distribution</h3>
             <p>Voting tokens are minted on-demand as participants claim them, reducing gas costs for proposal creators.</p>
+        </div>
+        <div class="feature-card">
+            <h3>Purchase Restrictions (Optional)</h3>
+            <p>Optionally limit token purchases to existing holders, requiring new members to be approved via governance proposals.</p>
+        </div>
+        <div class="feature-card">
+            <h3>Join Request System</h3>
+            <p>Non-holders can submit join requests to become members, which are voted on by existing token holders.</p>
+        </div>
+        <div class="feature-card">
+            <h3>Snapshot-Based Voting Power</h3>
+            <p>Unlimited scalability with O(1) snapshot creation, supporting 10,000+ holders without gas limit concerns.</p>
         </div>
         <div class="feature-card">
             <h3>Multiple Proposal Types</h3>
@@ -63,6 +75,32 @@ title: Market-Driven Governance
 
 <section class="section" id="how-it-works">
     <h2>How It Works</h2>
+
+    <h3>For New Members (Join Request):</h3>
+    <ol>
+        <li>
+            <h3>Connect Wallet</h3>
+            <p>Non-holders connect their wallet to the DAO interface.</p>
+        </li>
+        <li>
+            <h3>Submit Join Request</h3>
+            <p>Provide a description introducing yourself and why you want to join.</p>
+        </li>
+        <li>
+            <h3>Wait for Support</h3>
+            <p>Existing members review your request and add support if they approve.</p>
+        </li>
+        <li>
+            <h3>Election</h3>
+            <p>Once support threshold is met, members vote on your admission.</p>
+        </li>
+        <li>
+            <h3>Admission</h3>
+            <p>If approved, you receive 1 governance token and full DAO access.</p>
+        </li>
+    </ol>
+
+    <h3>For Token Holders (Standard Proposals):</h3>
     <ol>
         <li>
             <h3>Create a Proposal</h3>
@@ -122,16 +160,24 @@ title: Market-Driven Governance
     </p>
     <ul>
         <li><strong>Name</strong>: The name of the DAO</li>
-        <li><strong>Support Threshold</strong>: Percentage of tokens needed to trigger an election</li>
-        <li><strong>Quorum Percentage</strong>: Percentage of tokens needed for a valid election</li>
-        <li><strong>Maximum Proposal Age</strong>: Time before a proposal expires if it doesn't trigger an election</li>
+        <li><strong>Support Threshold</strong>: Percentage (in basis points) needed to trigger an election</li>
+        <li><strong>Quorum Percentage</strong>: Percentage (in basis points) needed for a valid election</li>
+        <li><strong>Maximum Proposal Age</strong>: Time before a proposal expires if it doesn't trigger an election (in blocks)</li>
         <li><strong>Election Duration</strong>: Length of the voting period in blocks</li>
-        <li><strong>Treasury Configuration</strong>: What asset types the treasury can hold (ETH, ERC20, ERC721, ERC1155)</li>
-        <li><strong>Allow Minting</strong>: Whether new governance tokens can be minted through proposals</li>
-        <li><strong>Token Price</strong>: Initial price for direct token purchases (0 disables direct sales)</li>
+        <li><strong>Flags</strong>: Bitfield for boolean options
+            <ul>
+                <li>Bit 0: Allow minting (whether new governance tokens can be minted via proposals)</li>
+                <li>Bit 1: Restrict purchases (whether token purchases are limited to existing holders)</li>
+            </ul>
+        </li>
+        <li><strong>Token Price</strong>: Initial price for direct token purchases in wei (0 disables direct sales)</li>
         <li><strong>Vesting Period</strong>: Vesting period for purchased governance tokens in blocks (0 disables vesting)</li>
-        <li><strong>Initial Token Distribution</strong>: Starting allocation of governance tokens</li>
+        <li><strong>Treasury Configuration</strong>: What asset types the treasury can hold (ETH, ERC20, ERC721, ERC1155)</li>
+        <li><strong>Initial Token Distribution</strong>: Starting allocation of governance tokens (addresses and amounts)</li>
     </ul>
+    <p>
+        <strong>Note on Basis Points:</strong> All percentage parameters use basis points for precision (10000 = 100%, 5100 = 51%, 2000 = 20%, 250 = 2.5%), allowing for 0.01% precision.
+    </p>
 </section>
 
 <section class="section" id="deployment">

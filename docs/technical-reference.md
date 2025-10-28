@@ -8,13 +8,20 @@ permalink: /docs/technical-reference/
 
 1. [Contract Architecture](#contract-architecture)
 2. [Security Features](#security-features)
-3. [MarketDAO Contract](#marketdao-contract)
-4. [Proposal Base Contract](#proposal-base-contract)
-5. [Proposal Types](#proposal-types)
-6. [ProposalFactory Contract](#proposalfactory-contract)
-7. [Token Specifications](#token-specifications)
-8. [Deployment Guide](#deployment-guide)
-9. [Development Reference](#development-reference)
+   - [Governance Token Vesting](#governance-token-vesting)
+   - [Lazy Vote Token Distribution](#lazy-vote-token-distribution)
+   - [Purchase Restrictions (Optional)](#purchase-restrictions-optional)
+   - [Join Request System](#join-request-system)
+   - [Snapshot-Based Voting Power](#snapshot-based-voting-power)
+3. [Security & Scalability](#security--scalability)
+4. [Known Limitations & Design Decisions](#known-limitations--design-decisions)
+5. [MarketDAO Contract](#marketdao-contract)
+6. [Proposal Base Contract](#proposal-base-contract)
+7. [Proposal Types](#proposal-types)
+8. [ProposalFactory Contract](#proposalfactory-contract)
+9. [Token Specifications](#token-specifications)
+10. [Deployment Guide](#deployment-guide)
+11. [Development Reference](#development-reference)
 
 ## Contract Architecture
 
@@ -41,7 +48,7 @@ ERC1155, ReentrancyGuard
 
 ## Security Features
 
-MarketDAO implements two critical security features to protect against common DAO attacks and optimize gas costs:
+MarketDAO implements multiple critical security features to protect against common DAO attacks and optimize gas costs:
 
 ### Governance Token Vesting
 
@@ -53,10 +60,18 @@ When governance tokens are purchased through the `purchaseTokens()` function, th
 
 - **Vesting Period**: Configured at DAO deployment via the `vestingPeriod` parameter (measured in blocks)
 - **Vesting Schedules**: Each token purchase creates a new vesting schedule with an unlock block number
+- **Automatic Cleanup**: Expired vesting schedules are automatically removed when transferring governance tokens
+- **Schedule Consolidation**: Multiple purchases with the same unlock time are automatically merged
+- **Schedule Limit**: Maximum 10 active vesting schedules per address (prevents DoS attacks)
+- **Manual Cleanup**: Users can call `cleanupMyVestingSchedules()` to remove expired schedules anytime
+- **Accurate Accounting**: Automatic cleanup maintains accurate `totalUnvestedGovernanceTokens` counter for quorum calculations
 - **Vested Balance**: The `vestedBalance(address holder)` function calculates how many tokens are currently unlocked and available for governance
 - **Governance Restrictions**: All governance functions (adding proposal support, voting) check `vestedBalance()` rather than total token balance
+- **Frontend Display**: Dashboard shows total, vested, and unvested balances separately
 
 **Attack Prevention**: An attacker who purchases a large number of tokens must wait for the vesting period to elapse before they can use those tokens to support proposals or vote, giving the DAO community time to respond.
+
+**Note**: Initial token holders (from constructor) are not subject to vesting restrictions.
 
 ```solidity
 struct VestingSchedule {
@@ -113,6 +128,151 @@ function getClaimableAmount(address holder) external view returns (uint256) {
     return dao.vestedBalance(holder);
 }
 ```
+
+### Purchase Restrictions (Optional)
+
+**Purpose**: Prevents governance attacks where outsiders buy enough tokens to control the DAO by requiring community approval for all new members.
+
+**Implementation**:
+
+The purchase restriction feature can be enabled at deployment time (bit 1 of the flags parameter). When enabled:
+
+- **Open mode (default)**: Anyone can purchase governance tokens directly
+- **Restricted mode**: Only existing token holders can purchase additional tokens
+- **Voting in new members**: When restricted, new members must be approved via mint proposals
+- **Attack prevention**: Prevents hostile takeovers by requiring community approval for all new members
+- **Configuration option**: Set `RESTRICT_PURCHASES = true` in the deployment script
+
+**Use Cases:**
+- **Investment clubs**: Members vote on admitting new partners
+- **Private DAOs**: Closed membership with proposal-based expansion
+- **Security-focused**: Extra protection against governance attacks
+
+**Note**: The restriction check is based on current token balance (> 0), not historical holder status. If a holder transfers all tokens, they lose purchase privileges until they receive tokens again.
+
+**Important**: The `restrictPurchasesToHolders` setting is configured at deployment and cannot be changed afterward. This ensures trust and predictability for DAO members.
+
+### Join Request System
+
+**Purpose**: Enables controlled membership growth while maintaining accessibility by allowing non-token holders to request membership.
+
+**Implementation**:
+
+Non-holders can submit join requests that create mint proposals for exactly 1 governance token:
+
+- **Open to all**: Anyone without governance tokens can submit a join request
+- **Proposal-based**: Join requests are mint proposals for exactly 1 governance token to the requester's address
+- **Community voting**: Existing token holders vote on whether to admit new members
+- **Self-introduction**: Requesters provide a description explaining who they are and why they want to join
+- **One request per address**: Non-holders can only submit one join request (tracked via frontend localStorage)
+- **Standard proposal flow**: Join requests follow the normal proposal lifecycle (support → election → execution)
+- **Automatic restrictions**: Non-holders cannot create any other proposal types (resolution, treasury, token price)
+
+**How It Works:**
+1. Non-holder connects wallet and is presented with a "Request to Join DAO" interface
+2. They submit a description introducing themselves
+3. The system creates a mint proposal for 1 token to their address
+4. Existing members see the request in the Proposals tab and can add support
+5. Once support threshold is met, an election begins
+6. Members vote YES or NO on admitting the new member
+7. If approved, the new member receives 1 governance token and full DAO access
+8. If rejected, they remain a non-holder but cannot submit another request
+
+**Benefits:**
+- **Controlled growth**: Community decides who joins
+- **Prevents spam**: One request per address limits abuse
+- **Transparency**: All join decisions are on-chain and voted on
+- **Flexibility**: Works with both open and restricted purchase modes
+
+**Note**: Token holders can still create mint proposals for any amount to any address. The 1-token restriction only applies to non-holders creating proposals for themselves.
+
+### Snapshot-Based Voting Power
+
+**Purpose**: Enable unlimited scalability without gas limit concerns by using O(1) snapshot creation.
+
+**Implementation**:
+
+MarketDAO uses a snapshot-based system for determining voting power:
+
+- **O(1) snapshot creation**: Uses total vested supply instead of looping through all holders
+- **Truly unlimited holders**: Tested with 10,000+ holders with constant gas costs
+- **Accurate quorum**: Quorum calculated from vested supply only (unvested tokens cannot vote)
+- **Fair voting**: Voting power frozen at election start, preventing mid-election manipulation
+- **No gas limit concerns**: Election triggering cannot fail due to too many holders
+
+**Gas Costs:**
+- Election triggering: Constant ~280K gas regardless of holder count
+- Proposal execution: O(1) regardless of holder count
+
+## Security & Scalability
+
+MarketDAO has been audited and hardened against common vulnerabilities:
+
+### Security Features Summary
+- ✅ **Reentrancy protection**: Transfer functions (`safeTransferFrom`, `safeBatchTransferFrom`) use ReentrancyGuard to prevent reentrancy during vote transfers and early termination
+- ✅ **Factory-only proposal registration**: Only the official ProposalFactory can register proposals
+- ✅ **Token holder restrictions**: Only addresses with vested governance tokens can create proposals (except join requests)
+- ✅ **Join request validation**: Non-holders can only create mint proposals for exactly 1 token to their own address
+- ✅ **Safe token transfers**: Uses OpenZeppelin's SafeERC20 and safeTransferFrom for all token operations
+- ✅ **Basis points precision**: Thresholds use basis points (10000 = 100%) for 0.01% precision
+- ✅ **Bounded gas costs**: All operations have predictable, capped gas costs
+
+### Scalability Guarantees
+- ✅ **Unlimited governance token holders**: O(1) snapshot using total supply enables 10,000+ participants
+- ✅ **O(1) election triggering**: Constant 280K gas cost regardless of holder count
+- ✅ **Automatic vesting cleanup**: Prevents unbounded array growth in vesting schedules
+- ✅ **O(1) proposal execution**: Constant-time execution regardless of holder count
+- ✅ **No gas limit concerns**: Election triggering cannot fail due to blockchain gas limits
+
+### DoS Protection
+- ✅ **No holder count limits**: O(1) snapshot prevents DoS from too many token holders
+- ✅ **Vesting schedule limits**: Max 10 active schedules per address with auto-cleanup
+- ✅ **Consolidation**: Automatic merging of schedules with same unlock time
+- ✅ **Gas-bounded operations**: Election triggering uses constant gas regardless of holder count
+- ✅ **Join request spam prevention**: Non-holders limited to one join request per address (frontend enforced)
+
+## Known Limitations & Design Decisions
+
+These are intentional design choices that should be understood before deployment:
+
+### Purchase Restrictions Are Permanent
+
+**Behavior**: The `restrictPurchasesToHolders` setting is configured at deployment and cannot be changed afterward. It's a fundamental characteristic of the DAO, not a governance parameter.
+
+**Rationale**: This ensures trust and predictability. Members joining a restricted DAO know that membership requirements cannot be changed without redeploying. Similarly, open DAOs remain open permanently.
+
+**Consideration**: Choose carefully based on your DAO's purpose:
+- **Open**: Best for community DAOs, protocol governance, broad participation
+- **Restricted**: Best for investment clubs, private organizations, security-focused DAOs
+
+### Treasury Proposal Competition
+
+**Behavior**: Multiple treasury proposals can be created requesting the same funds. Funds are only locked when a proposal reaches the support threshold and triggers an election. If proposal A locks the funds first, proposal B will fail when trying to start its election.
+
+**Rationale**: Locking funds at proposal creation would enable trivial DoS attacks (spam proposals locking all treasury). Current design ensures only proposals with real community support (20%+ backing) can lock funds.
+
+**Mitigation**: Community should coordinate on competing proposals. Frontend should display when multiple proposals request overlapping funds.
+
+### Support Tracking After Token Transfers
+
+**Behavior**: Support amounts are recorded when added but not automatically adjusted if users transfer their governance tokens afterward. Support only triggers elections - it does not affect voting outcomes.
+
+**Why Not Critical**: Even if support is artificially inflated, winning an election still requires:
+- 51% quorum participation from real token holders
+- Majority YES votes based on actual token holdings at election start
+- Attack cost (gas + token ownership) exceeds any benefit
+
+**Mitigation**: Monitor for unusual support patterns. Set appropriate support thresholds to make attacks expensive.
+
+### Fund Locking Gas Costs
+
+**Behavior**: Functions that calculate available treasury balances (`getAvailableETH`, `getAvailableERC20`, etc.) iterate through all proposals with locked funds. Gas costs scale linearly with the number of concurrent treasury proposals in their election phase.
+
+**Impact**: With many concurrent treasury proposals (50+), creating new treasury proposals or triggering elections could become expensive or potentially hit gas limits.
+
+**Likelihood**: Low - Most DAOs will have fewer than 10 concurrent treasury elections at any time since elections are typically short (50 blocks).
+
+**Mitigation**: If your DAO expects high concurrent treasury activity, consider shorter election durations or implementing a proposal limit.
 
 ## MarketDAO Contract
 
@@ -474,17 +634,33 @@ When deploying the MarketDAO contract, you'll need to provide:
 
 ```solidity
 string _name,                  // Name of the DAO
-uint256 _supportThreshold,     // Percentage needed to trigger election (e.g., 15)
-uint256 _quorumPercentage,     // Percentage needed for valid election (e.g., 25)
+uint256 _supportThreshold,     // Percentage needed to trigger election in basis points (e.g., 2000 = 20%)
+uint256 _quorumPercentage,     // Percentage needed for valid election in basis points (e.g., 5100 = 51%)
 uint256 _maxProposalAge,       // Max age of proposal in blocks
 uint256 _electionDuration,     // Length of election in blocks
-bool _allowMinting,            // Whether new governance tokens can be minted
+uint256 _flags,                // Bitfield for boolean options (bit 0: allow minting, bit 1: restrict purchases)
 uint256 _tokenPrice,           // Price per token in wei (0 = direct sales disabled)
 uint256 _vestingPeriod,        // Vesting period for purchased tokens in blocks (0 = no vesting)
 string[] _treasuryConfig,      // Array of supported asset types (e.g., ["ETH", "ERC20"])
 address[] _initialHolders,     // Array of initial token holder addresses
 uint256[] _initialAmounts      // Array of initial token amounts
 ```
+
+**Note on Basis Points**: All percentage parameters use basis points for precision:
+- 10000 = 100%
+- 5100 = 51%
+- 2000 = 20%
+- 250 = 2.5%
+
+This allows for fractional percentages with 0.01% precision.
+
+**Configuring Flags**: The deployment script (`script/Deploy.s.sol`) provides boolean configuration options that are automatically converted to the flags bitfield:
+```solidity
+bool constant ALLOW_MINTING = true;            // Enable governance token minting
+bool constant RESTRICT_PURCHASES = false;      // Allow anyone to purchase tokens
+```
+
+The `buildFlags()` function handles the conversion automatically.
 
 ## Development Reference
 

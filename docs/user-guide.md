@@ -10,21 +10,24 @@ permalink: /docs/user-guide/
 2. [Getting Started](#getting-started)
    - [Connecting Your Wallet](#connecting-your-wallet)
    - [Understanding the Dashboard](#understanding-the-dashboard)
-3. [Governance Tokens](#governance-tokens)
+3. [Join Request System (For Non-Members)](#join-request-system-for-non-members)
+   - [How to Submit a Join Request](#how-to-submit-a-join-request)
+   - [Join Request Process](#join-request-process)
+4. [Governance Tokens](#governance-tokens)
    - [Acquiring Governance Tokens](#acquiring-governance-tokens)
    - [Checking Your Balance](#checking-your-balance)
-4. [Creating Proposals](#creating-proposals)
+5. [Creating Proposals](#creating-proposals)
    - [Resolution Proposals](#resolution-proposals)
    - [Treasury Proposals](#treasury-proposals)
    - [Mint Proposals](#mint-proposals)
    - [Token Price Proposals](#token-price-proposals)
-5. [Supporting Proposals](#supporting-proposals)
-6. [Participating in Elections](#participating-in-elections)
+6. [Supporting Proposals](#supporting-proposals)
+7. [Participating in Elections](#participating-in-elections)
    - [Understanding the Election Process](#understanding-the-election-process)
    - [Voting on Proposals](#voting-on-proposals)
    - [Trading Voting Tokens](#trading-voting-tokens)
-7. [Viewing Proposal History](#viewing-proposal-history)
-8. [FAQ](#faq)
+8. [Viewing Proposal History](#viewing-proposal-history)
+9. [FAQ](#faq)
 
 ## Introduction
 
@@ -50,6 +53,55 @@ After connecting your wallet, you'll see the Dashboard, which displays:
 - **Token Purchase** - Interface to buy governance tokens
 - **Navigation Tabs** - Access to Proposals, Elections, and History sections
 
+## Join Request System (For Non-Members)
+
+If you don't have governance tokens yet, you can request to join the DAO through the Join Request System. This feature allows potential members to introduce themselves and request admission to the DAO.
+
+### How to Submit a Join Request
+
+1. **Connect Your Wallet**: Connect to the DAO interface with a wallet that does not hold governance tokens
+2. **Access Join Request Interface**: You'll see a "Request to Join DAO" interface instead of the standard proposal creation options
+3. **Introduce Yourself**: Provide a description explaining:
+   - Who you are
+   - Why you want to join the DAO
+   - What you can contribute to the community
+4. **Submit Request**: Click the submit button to create your join request
+5. **One Request Per Address**: You can only submit one join request per wallet address
+
+### Join Request Process
+
+Your join request follows the standard proposal lifecycle:
+
+1. **Support Phase**: Existing members review your request and can add support
+   - Your request needs to reach the support threshold (typically 20% of governance tokens)
+   - Members evaluate your introduction and decide if they support your admission
+
+2. **Election Phase**: Once support threshold is met, an election begins
+   - Existing members vote YES or NO on admitting you
+   - The election must meet quorum requirements (typically 51% participation)
+
+3. **Outcome**:
+   - **If Approved**: You receive 1 governance token and become a full member with all rights and privileges
+   - **If Rejected**: Your request is declined, but you remain able to observe the DAO
+
+**Important Notes:**
+- Non-holders can only create join requests (1 token to yourself)
+- Token holders can create regular mint proposals for any amount to any address
+- Join requests work in both open and restricted purchase mode DAOs
+- Even if rejected, the on-chain record shows you attempted to participate
+
+### Purchase Restrictions
+
+Some DAOs may be configured with purchase restrictions:
+
+- **Open Mode (default)**: Anyone can purchase governance tokens directly without approval
+- **Restricted Mode**: Only existing token holders can purchase additional tokens
+  - New members must be approved via join requests or mint proposals
+  - This protects against hostile takeovers by outsiders
+  - Best for investment clubs, private organizations, and security-focused DAOs
+
+Check the DAO's configuration to see which mode is active. If you're unsure, try connecting your wallet - the interface will show you what options are available.
+
 ## Governance Tokens
 
 Governance tokens (Token ID 0) are the foundation of MarketDAO participation. They allow you to:
@@ -74,8 +126,15 @@ Governance tokens acquired through direct purchase are subject to a vesting peri
 - **Unlocking:** Tokens gradually become available for governance as they vest
 - **Governance Rights:** Only vested (unlocked) tokens can be used to support proposals or claim voting tokens
 - **Trading:** You can transfer governance tokens at any time, but the vesting schedule transfers with them
+- **Automatic Cleanup:** Expired vesting schedules are automatically removed when transferring tokens
+- **Schedule Consolidation:** Multiple purchases with the same unlock time are automatically merged
+- **Schedule Limit:** Maximum 10 active vesting schedules per address (prevents DoS attacks)
+- **Manual Cleanup:** You can call `cleanupMyVestingSchedules()` to remove expired schedules anytime
+- **Dashboard Display:** The interface shows total, vested, and unvested balances separately so you can track your governance power
 
 This vesting mechanism protects the DAO from hostile takeover attempts where an attacker might try to purchase a large number of tokens and immediately vote themselves control of the treasury.
+
+**Note**: Initial token holders (those who received tokens when the DAO was created) are not subject to vesting restrictions.
 
 ### Checking Your Balance
 
@@ -223,3 +282,18 @@ A: If the quorum threshold isn't met by the end of the election period, the prop
 
 **Q: Can proposals be canceled?**
 A: Once created, proposals cannot be canceled. They will either fail to reach the support threshold and expire, or they will proceed to an election and be decided by voting.
+
+**Q: What happens if my join request is rejected?**
+A: If your join request is rejected, you do not receive any governance tokens and cannot submit another join request from the same wallet address. However, you can still observe the DAO's activities and proposals.
+
+**Q: Can I submit multiple join requests?**
+A: No, you can only submit one join request per wallet address. This prevents spam and ensures that members take join requests seriously. If you need to try again, you would need to use a different wallet address.
+
+**Q: How do I know if a DAO has purchase restrictions enabled?**
+A: Connect your wallet to the DAO interface. If the DAO has purchase restrictions and you don't hold tokens, you'll see the join request interface instead of a direct purchase option. DAOs in open mode will show direct purchase options to everyone.
+
+**Q: What are vesting schedules and why do they matter?**
+A: Vesting schedules track when your purchased tokens unlock for governance use. You can have up to 10 active schedules, and the system automatically cleans up expired ones. This prevents attacks where someone might try to accumulate many small purchases to overflow the system.
+
+**Q: Can I see how many vested vs. unvested tokens I have?**
+A: Yes, the dashboard displays your total, vested, and unvested balances separately so you always know how much governance power you currently have available.
