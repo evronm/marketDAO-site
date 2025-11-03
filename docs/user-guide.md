@@ -20,7 +20,7 @@ permalink: /docs/user-guide/
    - [Resolution Proposals](#resolution-proposals)
    - [Treasury Proposals](#treasury-proposals)
    - [Mint Proposals](#mint-proposals)
-   - [Token Price Proposals](#token-price-proposals)
+   - [Parameter Proposals](#parameter-proposals)
 6. [Supporting Proposals](#supporting-proposals)
 7. [Participating in Elections](#participating-in-elections)
    - [Understanding the Election Process](#understanding-the-election-process)
@@ -180,13 +180,60 @@ Required information:
 
 > **Note:** Mint proposals will only work if token minting is allowed in the DAO configuration.
 
-### Token Price Proposals
+### Parameter Proposals
 
-Token price proposals change the price of governance tokens for direct purchase.
+Parameter proposals allow you to change DAO configuration parameters through democratic governance. This is a powerful feature that gives the community control over how the DAO operates.
 
 Required information:
-- **Description:** Justification for the price change
-- **New Price (in ETH):** The proposed token price (set to 0 to disable direct sales)
+- **Description:** Justification for the parameter change
+- **Parameter Type:** Select which parameter to modify
+- **New Value:** The proposed new value for the selected parameter
+
+**Available Parameter Types:**
+
+1. **Support Threshold**
+   - What it controls: Percentage of governance tokens needed to trigger an election
+   - Valid range: 0.01% to 100% (in basis points: > 0 and <= 10000)
+   - Example use: Lower to make elections easier to trigger, raise to require more community backing
+
+2. **Quorum Percentage**
+   - What it controls: Percentage participation needed for a valid election
+   - Valid range: 1% to 100% (in basis points: >= 100 and <= 10000)
+   - Example use: Lower for faster decisions, raise to require broader participation
+
+3. **Max Proposal Age**
+   - What it controls: How long a proposal can exist before expiring (in blocks)
+   - Valid range: Must be > 0
+   - Example use: Increase to give proposals more time to gather support
+
+4. **Election Duration**
+   - What it controls: Length of the voting period (in blocks)
+   - Valid range: Must be > 0
+   - Example use: Extend for more deliberation time, shorten for faster decisions
+
+5. **Vesting Period**
+   - What it controls: Vesting period for purchased governance tokens (in blocks)
+   - Valid range: >= 0 (0 disables vesting)
+   - Example use: Increase for more protection against hostile takeovers, decrease to allow faster participation
+
+6. **Token Price**
+   - What it controls: Price for direct token purchases (in wei)
+   - Valid range: Must be > 0 (or 0 to disable direct sales)
+   - Example use: Adjust based on DAO treasury needs or token value
+
+7. **Flags**
+   - What it controls: Boolean configuration options (bitfield)
+   - Valid range: 0-7 (bits 0-2 only)
+   - Bits:
+     - Bit 0: Allow minting (can new governance tokens be minted)
+     - Bit 1: Restrict purchases (limit to existing holders)
+     - Bit 2: Mint to purchase (mint new tokens vs transfer from treasury)
+   - Example use: Enable/disable features like token minting or purchase restrictions
+
+**Important Notes:**
+- Parameter proposals provide validation to prevent invalid configurations
+- Changes take effect immediately when the proposal is executed
+- The DAO name, treasury configuration, and purchase restrictions cannot be changed (set at deployment)
 
 ## Supporting Proposals
 
@@ -297,3 +344,15 @@ A: Vesting schedules track when your purchased tokens unlock for governance use.
 
 **Q: Can I see how many vested vs. unvested tokens I have?**
 A: Yes, the dashboard displays your total, vested, and unvested balances separately so you always know how much governance power you currently have available.
+
+**Q: What parameters can be changed through parameter proposals?**
+A: Seven parameters can be changed: support threshold, quorum percentage, max proposal age, election duration, vesting period, token price, and flags (boolean options). However, the DAO name, treasury configuration, and purchase restrictions are permanent and cannot be changed after deployment.
+
+**Q: Can parameter changes be reversed?**
+A: Yes, any parameter change can be reversed by creating another parameter proposal to change it back. The community always has the power to adjust parameters through democratic voting.
+
+**Q: What happens if I submit an invalid parameter value?**
+A: Parameter proposals have built-in validation. For example, you cannot set quorum below 1% or support threshold above 100%. Invalid values will be rejected when you try to create the proposal.
+
+**Q: How do I change a flag bit?**
+A: Flags are stored as a bitfield (0-7). To change a specific flag, you need to calculate the new bitfield value with that flag toggled. The frontend provides checkboxes to make this easier. For example, if current flags are 3 (bits 0 and 1 set) and you want to also enable bit 2, submit 7 (all three bits set).

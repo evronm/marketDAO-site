@@ -43,7 +43,7 @@ ERC1155, ReentrancyGuard
       ├── ResolutionProposal
       ├── TreasuryProposal
       ├── MintProposal
-      └── TokenPriceProposal
+      └── ParameterProposal
 ```
 
 ## Security Features
@@ -287,7 +287,7 @@ These are intentional design choices that should be understood before deployment
 | `quorumPercentage` | `uint256` | Percentage needed for valid election |
 | `maxProposalAge` | `uint256` | Max age of proposal without election |
 | `electionDuration` | `uint256` | Length of election in blocks |
-| `allowMinting` | `bool` | Whether new governance tokens can be minted |
+| `flags` | `uint256` | Bitfield for boolean configuration (bit 0: allow minting, bit 1: restrict purchases, bit 2: mint to purchase) |
 | `tokenPrice` | `uint256` | Price per token in wei (0 = direct sales disabled) |
 | `vestingPeriod` | `uint256` | Vesting period for purchased tokens in blocks |
 | `vestingSchedules` | `mapping(address => VestingSchedule[])` | Tracks vesting schedules per holder |
@@ -304,6 +304,9 @@ These are intentional design choices that should be understood before deployment
 | `governanceTokenHolders` | `address[]` | List of governance token holders |
 | `isGovernanceTokenHolder` | `mapping(address => bool)` | Tracks governance token holders |
 | `tokenSupply` | `mapping(uint256 => uint256)` | Tracks token supply by ID |
+| `totalUnvestedGovernanceTokens` | `uint256` | Tracks total unvested tokens for accurate quorum |
+| `lockedFunds` | `mapping` | Tracks funds locked by treasury proposals |
+| `flags` | `uint256` | Bitfield for boolean configuration options |
 
 ### Constructor
 
@@ -346,8 +349,17 @@ function getNextVotingTokenId() external returns (uint256)
 // Get total supply of a specific token ID
 function totalSupply(uint256 tokenId) external view returns (uint256)
 
-// Set the token price (called by proposals)
+// Parameter setter functions (called by ParameterProposal)
+function setSupportThreshold(uint256 newThreshold) external
+function setQuorumPercentage(uint256 newQuorum) external
+function setMaxProposalAge(uint256 newAge) external
+function setElectionDuration(uint256 newDuration) external
+function setVestingPeriod(uint256 newPeriod) external
 function setTokenPrice(uint256 newPrice) external
+function setFlags(uint256 newFlags) external
+
+// Get total vested supply (O(1) snapshot for quorum calculations)
+function getTotalVestedSupply() external view returns (uint256)
 ```
 
 #### Governance Functions
@@ -525,22 +537,48 @@ constructor(
 function _execute() internal override
 ```
 
-### TokenPriceProposal
+### ParameterProposal
 
-Changes the price for direct governance token purchases.
+Changes DAO configuration parameters through governance.
 
 ```solidity
 // State variables
-uint256 public newPrice;
+enum ParameterType {
+    SupportThreshold,      // 0: Percentage needed to trigger election (basis points, > 0 and <= 10000)
+    QuorumPercentage,      // 1: Percentage needed for valid election (basis points, >= 100 and <= 10000)
+    MaxProposalAge,        // 2: Max age of proposal without election (blocks, > 0)
+    ElectionDuration,      // 3: Length of election in blocks (> 0)
+    VestingPeriod,         // 4: Vesting period for purchased tokens (blocks, >= 0)
+    TokenPrice,            // 5: Price per token in wei (> 0, set to 0 to disable direct sales)
+    Flags                  // 6: Bitfield for boolean options (<= 7, bits 0-2 only)
+}
+
+ParameterType public parameterType;
+uint256 public newValue;
 
 constructor(
     MarketDAO _dao,
     string memory _description,
-    uint256 _newPrice
+    ParameterType _parameterType,
+    uint256 _newValue
 ) Proposal(_dao, _description)
 
 function _execute() internal override
 ```
+
+**Parameter Types:**
+- **SupportThreshold** (0): Changes the percentage of governance tokens needed to trigger an election (basis points, must be > 0 and <= 10000)
+- **QuorumPercentage** (1): Changes the percentage participation needed for a valid election (basis points, must be >= 100 and <= 10000, minimum 1%)
+- **MaxProposalAge** (2): Changes how long a proposal can exist before expiring (blocks, must be > 0)
+- **ElectionDuration** (3): Changes the length of the voting period (blocks, must be > 0)
+- **VestingPeriod** (4): Changes the vesting period for purchased governance tokens (blocks, can be 0 to disable vesting)
+- **TokenPrice** (5): Changes the price for direct token purchases (wei, must be > 0, or 0 to disable direct sales)
+- **Flags** (6): Changes boolean configuration options (must be <= 7, only bits 0-2 are valid)
+  - Bit 0: Allow minting (can new governance tokens be minted)
+  - Bit 1: Restrict purchases (limit to existing holders)
+  - Bit 2: Mint to purchase (mint new tokens vs transfer from treasury)
+
+Each parameter type has built-in validation to prevent invalid configurations.
 
 ## ProposalFactory Contract
 
@@ -553,6 +591,10 @@ function _execute() internal override
 | `dao` | `MarketDAO` | Reference to the parent DAO |
 | `proposals` | `mapping(uint256 => address)` | Maps indices to proposal addresses |
 | `proposalCount` | `uint256` | Number of proposals created |
+| `resolutionImpl` | `address` | Implementation contract for resolution proposals |
+| `treasuryImpl` | `address` | Implementation contract for treasury proposals |
+| `mintImpl` | `address` | Implementation contract for mint proposals |
+| `parameterImpl` | `address` | Implementation contract for parameter proposals |
 
 ### Constructor
 
@@ -584,11 +626,12 @@ function createMintProposal(
     uint256 amount
 ) external returns (MintProposal)
 
-// Create a token price update proposal
-function createTokenPriceProposal(
+// Create a parameter change proposal
+function createParameterProposal(
     string memory description,
-    uint256 newPrice
-) external returns (TokenPriceProposal)
+    ParameterType parameterType,
+    uint256 newValue
+) external returns (ParameterProposal)
 
 // Get a proposal by index
 function getProposal(uint256 index) external view returns (address)

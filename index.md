@@ -52,7 +52,7 @@ title: Market-Driven Governance
         </div>
         <div class="feature-card">
             <h3>Multiple Proposal Types</h3>
-            <p>Create resolutions, treasury transfers, governance token minting, and token price update proposals.</p>
+            <p>Create resolutions, treasury transfers, governance token minting, and parameter change proposals.</p>
         </div>
         <div class="feature-card">
             <h3>Flexible Support Thresholds</h3>
@@ -69,6 +69,10 @@ title: Market-Driven Governance
         <div class="feature-card">
             <h3>ERC1155 Foundation</h3>
             <p>Built on the ERC1155 standard for flexible token management, with token ID 0 reserved for governance tokens.</p>
+        </div>
+        <div class="feature-card">
+            <h3>Configurable Parameters via Governance</h3>
+            <p>All major governance parameters can be modified through democratic voting, including support thresholds, quorum requirements, election duration, vesting periods, and token prices.</p>
         </div>
     </div>
 </section>
@@ -168,6 +172,7 @@ title: Market-Driven Governance
             <ul>
                 <li>Bit 0: Allow minting (whether new governance tokens can be minted via proposals)</li>
                 <li>Bit 1: Restrict purchases (whether token purchases are limited to existing holders)</li>
+                <li>Bit 2: Mint to purchase (whether to mint new tokens or transfer from treasury when selling tokens)</li>
             </ul>
         </li>
         <li><strong>Token Price</strong>: Initial price for direct token purchases in wei (0 disables direct sales)</li>
