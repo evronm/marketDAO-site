@@ -21,6 +21,7 @@ permalink: /docs/user-guide/
    - [Treasury Proposals](#treasury-proposals)
    - [Mint Proposals](#mint-proposals)
    - [Parameter Proposals](#parameter-proposals)
+   - [Distribution Proposals](#distribution-proposals)
 6. [Supporting Proposals](#supporting-proposals)
 7. [Participating in Elections](#participating-in-elections)
    - [Understanding the Election Process](#understanding-the-election-process)
@@ -92,7 +93,7 @@ Your join request follows the standard proposal lifecycle:
 
 ### Purchase Restrictions
 
-Some DAOs may be configured with purchase restrictions:
+DAOs can be configured with purchase restrictions, which can be changed through Parameter Proposals (democratic voting):
 
 - **Open Mode (default)**: Anyone can purchase governance tokens directly without approval
 - **Restricted Mode**: Only existing token holders can purchase additional tokens
@@ -100,7 +101,7 @@ Some DAOs may be configured with purchase restrictions:
   - This protects against hostile takeovers by outsiders
   - Best for investment clubs, private organizations, and security-focused DAOs
 
-Check the DAO's configuration to see which mode is active. If you're unsure, try connecting your wallet - the interface will show you what options are available.
+The purchase restriction setting (bit 1 of the flags parameter) can be toggled through a Parameter Proposal, allowing the DAO to evolve its membership model as needed. Check the DAO's current configuration by connecting your wallet - the interface will show you what options are available.
 
 ## Governance Tokens
 
@@ -142,7 +143,7 @@ Your governance token balance is displayed prominently on the Dashboard under "Y
 
 ## Creating Proposals
 
-MarketDAO supports four types of proposals. To create a proposal:
+MarketDAO supports five types of proposals. To create a proposal:
 
 1. Navigate to the Dashboard
 2. Scroll to the "Create Proposal" section
@@ -233,7 +234,46 @@ Required information:
 **Important Notes:**
 - Parameter proposals provide validation to prevent invalid configurations
 - Changes take effect immediately when the proposal is executed
-- The DAO name, treasury configuration, and purchase restrictions cannot be changed (set at deployment)
+- The DAO name and treasury configuration cannot be changed (set at deployment)
+- All other parameters including flags (purchase restrictions, minting, etc.) can be changed through governance
+
+### Distribution Proposals
+
+Distribution proposals enable proportional distributions of assets to all token holders based on their governance token holdings. This is useful for revenue sharing, dividends, airdrops, or fair liquidation.
+
+Required information:
+- **Description:** Purpose of the distribution
+- **Asset Type:** ETH, ERC20, or ERC1155
+- **Token Address:** Contract address (for ERC20 or ERC1155)
+- **Token ID:** Specific token ID (for ERC1155 only)
+- **Amount Per Token:** How much to distribute per governance token held
+
+**How Distribution Works:**
+
+1. **Create Proposal:** Specify what asset to distribute and how much per governance token
+2. **Registration Phase:** During the support and election phases, token holders must register to receive the distribution
+   - Click "Register for Distribution" on the proposal card
+   - Only registered holders will receive distributions
+   - Registration locks in your governance token balance
+3. **Standard Voting:** The proposal follows normal support → election → voting flow
+4. **Execution:** If approved, funds are transferred to a DistributionRedemption contract
+5. **Claiming:** After execution:
+   - Go to the History tab
+   - Find the executed distribution proposal
+   - Click "Claim Distribution" to receive your proportional share
+   - You can claim anytime after execution
+
+**Example Use Cases:**
+- **Revenue Sharing:** Distribute profits to all token holders based on their ownership
+- **Dividend Payments:** Regular distributions from treasury earnings
+- **Token Airdrops:** Distribute ERC20 tokens or NFTs proportionally
+- **DAO Liquidation:** Fair distribution when winding down
+
+**Important:**
+- You must register during the support/election phase to receive the distribution
+- Claiming is done individually - each holder pays their own gas to claim
+- Unclaimed distributions remain in the contract indefinitely
+- The amount you receive is based on your registered balance (locked when you register)
 
 ## Supporting Proposals
 
@@ -346,7 +386,7 @@ A: Vesting schedules track when your purchased tokens unlock for governance use.
 A: Yes, the dashboard displays your total, vested, and unvested balances separately so you always know how much governance power you currently have available.
 
 **Q: What parameters can be changed through parameter proposals?**
-A: Seven parameters can be changed: support threshold, quorum percentage, max proposal age, election duration, vesting period, token price, and flags (boolean options). However, the DAO name, treasury configuration, and purchase restrictions are permanent and cannot be changed after deployment.
+A: Seven parameters can be changed: support threshold, quorum percentage, max proposal age, election duration, vesting period, token price, and flags (boolean options including purchase restrictions, minting, and mint-to-purchase). Only the DAO name and treasury configuration are permanent and cannot be changed after deployment.
 
 **Q: Can parameter changes be reversed?**
 A: Yes, any parameter change can be reversed by creating another parameter proposal to change it back. The community always has the power to adjust parameters through democratic voting.
@@ -356,3 +396,21 @@ A: Parameter proposals have built-in validation. For example, you cannot set quo
 
 **Q: How do I change a flag bit?**
 A: Flags are stored as a bitfield (0-7). To change a specific flag, you need to calculate the new bitfield value with that flag toggled. The frontend provides checkboxes to make this easier. For example, if current flags are 3 (bits 0 and 1 set) and you want to also enable bit 2, submit 7 (all three bits set).
+
+**Q: What are Distribution Proposals?**
+A: Distribution Proposals allow the DAO to distribute assets (ETH, ERC20, ERC1155) proportionally to all token holders based on their governance token holdings. This is useful for revenue sharing, dividends, airdrops, or fair liquidation when winding down a DAO.
+
+**Q: How do I receive a distribution?**
+A: You must register for the distribution during the support or election phase by clicking "Register for Distribution" on the proposal card. If the proposal passes, you can then claim your proportional share from the History tab anytime after execution.
+
+**Q: What happens if I forget to register for a distribution?**
+A: If you don't register before the election ends, you won't be eligible to claim that specific distribution. The distributed funds will only go to registered token holders. Make sure to register during the support/election phase if you want to participate.
+
+**Q: Can I claim a distribution multiple times?**
+A: No, each holder can only claim once per distribution proposal. After you claim your share, it will show as "Already Claimed" in the interface.
+
+**Q: What happens to unclaimed distributions?**
+A: Unclaimed distributions remain in the DistributionRedemption contract indefinitely. Registered holders can claim their share at any time, even months or years after the proposal execution.
+
+**Q: Can purchase restrictions be changed after deployment?**
+A: Yes, purchase restrictions (bit 1 of the flags parameter) can be enabled or disabled through Parameter Proposals. This allows the DAO to democratically evolve from open membership to restricted membership or vice versa. However, such changes should only be made with broad community consensus as they fundamentally affect the nature of DAO membership.

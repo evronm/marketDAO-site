@@ -42,8 +42,11 @@ ERC1155, ReentrancyGuard
       ↑
       ├── ResolutionProposal
       ├── TreasuryProposal
+      ├── DistributionProposal
       ├── MintProposal
       └── ParameterProposal
+
+   DistributionRedemption (Standalone Contract)
 ```
 
 ## Security Features
@@ -150,7 +153,7 @@ The purchase restriction feature can be enabled at deployment time (bit 1 of the
 
 **Note**: The restriction check is based on current token balance (> 0), not historical holder status. If a holder transfers all tokens, they lose purchase privileges until they receive tokens again.
 
-**Important**: The `restrictPurchasesToHolders` setting is configured at deployment and cannot be changed afterward. This ensures trust and predictability for DAO members.
+**Important**: The `restrictPurchasesToHolders` setting (bit 1 of the flags parameter) can be changed through Parameter Proposals, allowing DAOs to evolve their membership model democratically. However, this is a fundamental characteristic that should only be changed with broad community consensus.
 
 ### Join Request System
 
@@ -185,6 +188,39 @@ Non-holders can submit join requests that create mint proposals for exactly 1 go
 - **Flexibility**: Works with both open and restricted purchase modes
 
 **Note**: Token holders can still create mint proposals for any amount to any address. The 1-token restriction only applies to non-holders creating proposals for themselves.
+
+### Distribution Proposals (Proportional Distributions)
+
+**Purpose**: Enable fair, proportional distributions of assets to all token holders based on their governance token holdings.
+
+**Implementation**:
+
+Distribution Proposals allow DAOs to distribute assets (ETH, ERC20, ERC1155) proportionally to token holders:
+
+- **Proportional distribution**: Each holder receives an amount based on their registered token balance
+- **Registration system**: Token holders must register before the election to receive distributions
+- **Redemption contract**: Approved distributions transfer funds to a separate DistributionRedemption contract where users claim individually
+- **Claimable by holders**: Each registered holder claims their share when ready (no batch distribution gas costs)
+- **Asset support**: Works with ETH, ERC20, and ERC1155 tokens
+- **Flexible timing**: Users can claim at any time after proposal execution
+
+**How It Works:**
+1. **Create proposal**: Specify the asset type, amount per governance token, and description
+2. **Registration phase**: Token holders register during the support/election phases to be included
+3. **Voting**: Standard election process with support threshold and voting
+4. **Execution**: On approval, funds transfer to a DistributionRedemption contract
+5. **Claiming**: Registered holders claim their proportional share from the redemption contract
+
+**Example Use Cases:**
+- **Revenue sharing**: Distribute profits or royalties proportionally to all token holders
+- **Dividend payments**: Regular distributions based on treasury performance
+- **Airdrops**: Distribute ERC20 tokens or NFTs proportionally
+- **Liquidation**: Fair distribution when winding down a DAO
+
+**Gas Efficiency:**
+- No upfront distribution to all holders (would be prohibitively expensive)
+- Each holder claims individually, paying their own gas
+- Scales to unlimited holders without gas limit concerns
 
 ### Snapshot-Based Voting Power
 
@@ -235,15 +271,28 @@ MarketDAO has been audited and hardened against common vulnerabilities:
 
 These are intentional design choices that should be understood before deployment:
 
-### Purchase Restrictions Are Permanent
+### Immutable vs. Changeable Parameters
 
-**Behavior**: The `restrictPurchasesToHolders` setting is configured at deployment and cannot be changed afterward. It's a fundamental characteristic of the DAO, not a governance parameter.
+**Immutable (Set at Deployment)**:
+- **DAO Name**: Cannot be changed after deployment
+- **Treasury Configuration**: Which asset types (ETH, ERC20, ERC721, ERC1155) the DAO accepts
 
-**Rationale**: This ensures trust and predictability. Members joining a restricted DAO know that membership requirements cannot be changed without redeploying. Similarly, open DAOs remain open permanently.
+**Changeable via Parameter Proposals**:
+- Support Threshold
+- Quorum Percentage
+- Max Proposal Age
+- Election Duration
+- Vesting Period
+- Token Price
+- Flags (Allow Minting, Restrict Purchases, Mint to Purchase)
 
-**Consideration**: Choose carefully based on your DAO's purpose:
-- **Open**: Best for community DAOs, protocol governance, broad participation
-- **Restricted**: Best for investment clubs, private organizations, security-focused DAOs
+**Rationale**: Immutable parameters ensure trust and predictability. Members joining a DAO know that fundamental characteristics (name, treasury capabilities) cannot be changed without redeploying. All governance-related parameters can be modified democratically as the DAO evolves.
+
+**Important Note on Purchase Restrictions**: The "Restrict Purchases" flag can be enabled or disabled through Parameter Proposals (democratic voting). This allows DAOs to evolve their membership model:
+- **Open mode**: Anyone can purchase governance tokens directly
+- **Restricted mode**: Only existing token holders can purchase additional tokens
+
+While this flag is changeable, it affects the fundamental nature of DAO membership and should only be modified with broad consensus.
 
 ### Treasury Proposal Competition
 
@@ -518,6 +567,43 @@ constructor(
 function _execute() internal override
 ```
 
+### DistributionProposal
+
+Distributes assets proportionally to all registered token holders.
+
+```solidity
+// State variables
+AssetType public assetType;        // ETH, ERC20, or ERC1155
+address public tokenAddress;        // Token contract address (if applicable)
+uint256 public tokenId;             // Token ID (for ERC1155)
+uint256 public amountPerToken;      // Amount to distribute per governance token
+address public redemptionContract;  // DistributionRedemption contract address
+mapping(address => bool) public hasRegistered;  // Tracks registered holders
+
+constructor(
+    MarketDAO _dao,
+    string memory _description,
+    AssetType _assetType,
+    address _tokenAddress,
+    uint256 _tokenId,
+    uint256 _amountPerToken
+) Proposal(_dao, _description)
+
+// Register to receive distribution
+function registerForDistribution() external
+
+// Check if address has registered
+function isRegistered(address holder) external view returns (bool)
+
+function _execute() internal override
+```
+
+**Key Features:**
+- Token holders register during support/election phases
+- On execution, creates a DistributionRedemption contract
+- Transfers funds to redemption contract for claiming
+- Each registered holder can claim their proportional share at any time
+
 ### MintProposal
 
 Creates new governance tokens.
@@ -580,6 +666,53 @@ function _execute() internal override
 
 Each parameter type has built-in validation to prevent invalid configurations.
 
+## DistributionRedemption Contract
+
+`DistributionRedemption.sol` is a standalone contract created by DistributionProposal to manage proportional asset distributions.
+
+### State Variables
+
+| Variable | Type | Description |
+|----------|------|-------------|
+| `assetType` | `AssetType` | Type of asset being distributed (ETH, ERC20, ERC1155) |
+| `tokenAddress` | `address` | Contract address for token distributions |
+| `tokenId` | `uint256` | Token ID for ERC1155 distributions |
+| `amountPerToken` | `uint256` | Amount distributed per governance token |
+| `registeredHolders` | `mapping(address => uint256)` | Maps registered addresses to their token balances |
+| `hasClaimed` | `mapping(address => bool)` | Tracks which addresses have claimed |
+
+### Constructor
+
+```solidity
+constructor(
+    AssetType _assetType,
+    address _tokenAddress,
+    uint256 _tokenId,
+    uint256 _amountPerToken,
+    address[] memory _holders,
+    uint256[] memory _balances
+)
+```
+
+### Key Functions
+
+```solidity
+// Claim proportional distribution
+function claim() external
+
+// View claimable amount for an address
+function getClaimableAmount(address holder) external view returns (uint256)
+
+// Check if address has claimed
+function hasClaimed(address holder) external view returns (bool)
+```
+
+**Security Features:**
+- Each holder can only claim once
+- Claims are proportional to registered governance token balance
+- Supports ETH, ERC20, and ERC1155 assets
+- Gas efficient: holders pay their own claim gas
+
 ## ProposalFactory Contract
 
 `ProposalFactory.sol` facilitates the creation of different proposal types.
@@ -593,6 +726,7 @@ Each parameter type has built-in validation to prevent invalid configurations.
 | `proposalCount` | `uint256` | Number of proposals created |
 | `resolutionImpl` | `address` | Implementation contract for resolution proposals |
 | `treasuryImpl` | `address` | Implementation contract for treasury proposals |
+| `distributionImpl` | `address` | Implementation contract for distribution proposals |
 | `mintImpl` | `address` | Implementation contract for mint proposals |
 | `parameterImpl` | `address` | Implementation contract for parameter proposals |
 
@@ -618,6 +752,15 @@ function createTreasuryProposal(
     address token,
     uint256 tokenId
 ) external returns (TreasuryProposal)
+
+// Create a distribution proposal
+function createDistributionProposal(
+    string memory description,
+    AssetType assetType,
+    address tokenAddress,
+    uint256 tokenId,
+    uint256 amountPerToken
+) external returns (DistributionProposal)
 
 // Create a token minting proposal
 function createMintProposal(
