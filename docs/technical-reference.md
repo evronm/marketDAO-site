@@ -18,10 +18,11 @@ permalink: /docs/technical-reference/
 5. [MarketDAO Contract](#marketdao-contract)
 6. [Proposal Base Contract](#proposal-base-contract)
 7. [Proposal Types](#proposal-types)
-8. [ProposalFactory Contract](#proposalfactory-contract)
-9. [Token Specifications](#token-specifications)
-10. [Deployment Guide](#deployment-guide)
-11. [Development Reference](#development-reference)
+8. [DistributionRedemption Contract](#distributionredemption-contract)
+9. [ProposalFactory Contract](#proposalfactory-contract)
+10. [Token Specifications](#token-specifications)
+11. [Deployment Guide](#deployment-guide)
+12. [Development Reference](#development-reference)
 
 ## Contract Architecture
 
@@ -61,170 +62,53 @@ MarketDAO implements multiple critical security features to protect against comm
 
 When governance tokens are purchased through the `purchaseTokens()` function, they are subject to a configurable vesting period. The tokens are held by the buyer but cannot be used for governance until they vest.
 
-- **Vesting Period**: Configured at DAO deployment via the `vestingPeriod` parameter (measured in blocks)
-- **Vesting Schedules**: Each token purchase creates a new vesting schedule with an unlock block number
-- **Automatic Cleanup**: Expired vesting schedules are automatically removed when transferring governance tokens
-- **Schedule Consolidation**: Multiple purchases with the same unlock time are automatically merged
-- **Schedule Limit**: Maximum 10 active vesting schedules per address (prevents DoS attacks)
-- **Manual Cleanup**: Users can call `cleanupMyVestingSchedules()` to remove expired schedules anytime
-- **Accurate Accounting**: Automatic cleanup maintains accurate `totalUnvestedGovernanceTokens` counter for quorum calculations
-- **Vested Balance**: The `vestedBalance(address holder)` function calculates how many tokens are currently unlocked and available for governance
-- **Governance Restrictions**: All governance functions (adding proposal support, voting) check `vestedBalance()` rather than total token balance
-- **Frontend Display**: Dashboard shows total, vested, and unvested balances separately
+Key protections:
+- Unvested tokens cannot be transferred
+- Unvested tokens cannot be used for proposal support
+- Unvested tokens cannot be used for voting (voting token claims only include vested balance)
+- Initial token distribution (at DAO creation) bypasses vesting
 
-**Attack Prevention**: An attacker who purchases a large number of tokens must wait for the vesting period to elapse before they can use those tokens to support proposals or vote, giving the DAO community time to respond.
-
-**Note**: Initial token holders (from constructor) are not subject to vesting restrictions.
-
-```solidity
-struct VestingSchedule {
-    uint256 amount;
-    uint256 unlockBlock;
-}
-
-mapping(address => VestingSchedule[]) private vestingSchedules;
-
-function vestedBalance(address holder) public view returns (uint256) {
-    uint256 locked = 0;
-    VestingSchedule[] storage schedules = vestingSchedules[holder];
-    for (uint256 i = 0; i < schedules.length; i++) {
-        if (block.number < schedules[i].unlockBlock) {
-            locked += schedules[i].amount;
-        }
-    }
-    return balanceOf(holder, GOVERNANCE_TOKEN_ID) - locked;
-}
-```
+**Vesting Schedule Management:**
+- Maximum 10 vesting schedules per address (DoS protection)
+- Automatic consolidation of schedules with the same unlock time
+- Automatic cleanup of expired schedules on claim
+- Efficient O(1) tracking of total unvested tokens
 
 ### Lazy Vote Token Distribution
 
-**Purpose**: Reduces gas costs by avoiding the need to distribute voting tokens to all governance token holders when an election is triggered. Only users who actually participate in voting pay the gas to claim their voting tokens.
+**Purpose**: Minimizes gas costs when elections are triggered by not automatically minting voting tokens for all holders.
 
-**Implementation**: (Proposal.sol:24, 122-137)
+**Implementation**: (Proposal.sol:182-194)
 
-When an election is triggered, voting tokens are not minted upfront. Instead:
+When an election starts, voting tokens are NOT automatically distributed. Instead:
+- Each holder must claim their voting tokens before participating
+- Voting token amount equals the holder's vested governance tokens at election start
+- One-time claim per address per election
 
-- **On-Demand Minting**: Users call `claimVotingTokens()` during the election period to receive their voting tokens
-- **One-Time Claim**: The `hasClaimed` mapping ensures each holder can only claim once per election
-- **Proportional Distribution**: Users receive voting tokens equal to their vested governance token balance at the time of claim
-- **Vote Calculation**: The system calculates total possible votes based on all governance holders' vested balances, not just claimed tokens
-
-**Gas Savings**: In a DAO with many token holders, only active participants pay gas to claim voting tokens, rather than the proposal creator paying gas to distribute to everyone upfront.
-
-```solidity
-mapping(address => bool) public hasClaimed;
-
-function claimVotingTokens() external onlyDuringElection {
-    require(!hasClaimed[msg.sender], "Already claimed voting tokens");
-
-    uint256 vestedBal = dao.vestedBalance(msg.sender);
-    require(vestedBal > 0, "No vested governance tokens to claim");
-
-    hasClaimed[msg.sender] = true;
-    dao.mintVotingTokens(msg.sender, votingTokenId, vestedBal);
-}
-
-function getClaimableAmount(address holder) external view returns (uint256) {
-    if (!electionTriggered) return 0;
-    if (hasClaimed[holder]) return 0;
-    if (block.number >= electionStart + dao.electionDuration()) return 0;
-    return dao.vestedBalance(holder);
-}
-```
+Benefits:
+- Proposer doesn't pay gas to mint tokens for all holders
+- Only active participants incur gas costs
+- Scales to unlimited number of governance token holders
 
 ### Purchase Restrictions (Optional)
 
-**Purpose**: Prevents governance attacks where outsiders buy enough tokens to control the DAO by requiring community approval for all new members.
+**Purpose**: Prevents hostile takeovers by limiting token purchases to existing holders.
 
-**Implementation**:
+**Implementation**: (MarketDAO.sol:38, 215)
 
-The purchase restriction feature can be enabled at deployment time (bit 1 of the flags parameter). When enabled:
-
-- **Open mode (default)**: Anyone can purchase governance tokens directly
-- **Restricted mode**: Only existing token holders can purchase additional tokens
-- **Voting in new members**: When restricted, new members must be approved via mint proposals
-- **Attack prevention**: Prevents hostile takeovers by requiring community approval for all new members
-- **Configuration option**: Set `RESTRICT_PURCHASES = true` in the deployment script
-
-**Use Cases:**
-- **Investment clubs**: Members vote on admitting new partners
-- **Private DAOs**: Closed membership with proposal-based expansion
-- **Security-focused**: Extra protection against governance attacks
-
-**Note**: The restriction check is based on current token balance (> 0), not historical holder status. If a holder transfers all tokens, they lose purchase privileges until they receive tokens again.
-
-**Important**: The `restrictPurchasesToHolders` setting (bit 1 of the flags parameter) can be changed through Parameter Proposals, allowing DAOs to evolve their membership model democratically. However, this is a fundamental characteristic that should only be changed with broad community consensus.
+When enabled (`RESTRICT_PURCHASES = true`), only addresses with an existing governance token balance can purchase additional tokens. Non-holders must submit join requests.
 
 ### Join Request System
 
-**Purpose**: Enables controlled membership growth while maintaining accessibility by allowing non-token holders to request membership.
+**Purpose**: Provides a democratic path for new members to join restricted DAOs.
 
-**Implementation**:
+**Implementation**: (ProposalFactory.sol:69-76)
 
-Non-holders can submit join requests that create mint proposals for exactly 1 governance token:
-
-- **Open to all**: Anyone without governance tokens can submit a join request
-- **Proposal-based**: Join requests are mint proposals for exactly 1 governance token to the requester's address
-- **Community voting**: Existing token holders vote on whether to admit new members
-- **Self-introduction**: Requesters provide a description explaining who they are and why they want to join
-- **One request per address**: Non-holders can only submit one join request (tracked via frontend localStorage)
-- **Standard proposal flow**: Join requests follow the normal proposal lifecycle (support → election → execution)
-- **Automatic restrictions**: Non-holders cannot create any other proposal types (resolution, treasury, token price)
-
-**How It Works:**
-1. Non-holder connects wallet and is presented with a "Request to Join DAO" interface
-2. They submit a description introducing themselves
-3. The system creates a mint proposal for 1 token to their address
-4. Existing members see the request in the Proposals tab and can add support
-5. Once support threshold is met, an election begins
-6. Members vote YES or NO on admitting the new member
-7. If approved, the new member receives 1 governance token and full DAO access
-8. If rejected, they remain a non-holder but cannot submit another request
-
-**Benefits:**
-- **Controlled growth**: Community decides who joins
-- **Prevents spam**: One request per address limits abuse
-- **Transparency**: All join decisions are on-chain and voted on
-- **Flexibility**: Works with both open and restricted purchase modes
-
-**Note**: Token holders can still create mint proposals for any amount to any address. The 1-token restriction only applies to non-holders creating proposals for themselves.
-
-### Distribution Proposals (Proportional Distributions)
-
-**Purpose**: Enable fair, proportional distributions of assets to all token holders based on their governance token holdings.
-
-**Implementation**:
-
-Distribution Proposals allow DAOs to distribute assets (ETH, ERC20, ERC1155) proportionally to token holders:
-
-- **Proportional distribution**: Each holder receives an amount based on their registered token balance
-- **Registration system**: Token holders must register before the election to receive distributions
-- **Redemption contract**: Approved distributions transfer funds to a separate DistributionRedemption contract where users claim individually
-- **Claimable by holders**: Each registered holder claims their share when ready (no batch distribution gas costs)
-- **Asset support**: Works with ETH, ERC20, and ERC1155 tokens
-- **Flexible timing**: Users can claim at any time after proposal execution
-
-**How It Works:**
-1. **Create proposal**: Specify the asset type, amount per governance token, and description
-2. **Registration phase**: Token holders register during the support/election phases to be included
-3. **Voting**: Standard election process with support threshold and voting
-4. **Execution**: On approval, funds transfer to a DistributionRedemption contract
-5. **Claiming**: Registered holders claim their proportional share from the redemption contract
-
-**Example Use Cases:**
-- **Revenue sharing**: Distribute profits or royalties proportionally to all token holders
-- **Dividend payments**: Regular distributions based on treasury performance
-- **Airdrops**: Distribute ERC20 tokens or NFTs proportionally
-- **Liquidation**: Fair distribution when winding down a DAO
-
-**Gas Efficiency:**
-- No upfront distribution to all holders (would be prohibitively expensive)
-- Each holder claims individually, paying their own gas
-- Scales to unlimited holders without gas limit concerns
+Non-holders can create a special mint proposal requesting exactly 1 governance token to their own address. This proposal goes through the normal support and voting process, allowing existing members to vet new applicants.
 
 ### Snapshot-Based Voting Power
 
-**Purpose**: Enable unlimited scalability without gas limit concerns by using O(1) snapshot creation.
+**Purpose**: Ensures unlimited scalability by avoiding iteration over all token holders.
 
 **Implementation**:
 
@@ -242,10 +126,25 @@ MarketDAO uses a snapshot-based system for determining voting power:
 
 ## Security & Scalability
 
-MarketDAO has been audited and hardened against common vulnerabilities:
+MarketDAO has been audited by **[Hashlock Pty Ltd](https://hashlock.com/audits/marketdao)** (January 2026). All HIGH severity issues have been resolved.
+
+<p style="text-align: center; margin: 20px 0;">
+    <a href="https://hashlock.com/audits/marketdao" target="_blank" rel="noopener">
+        <img src="{{ site.baseurl }}/assets/images/hashlock-badge.png" alt="Audited by Hashlock" style="max-width: 200px;">
+    </a>
+</p>
+<p style="text-align: center;">
+    <a href="https://hashlock.com/audits/marketdao" target="_blank" rel="noopener" class="cta-button">View Full Audit Report</a>
+</p>
 
 ### Security Features Summary
+
 - ✅ **Reentrancy protection**: Transfer functions (`safeTransferFrom`, `safeBatchTransferFrom`) use ReentrancyGuard to prevent reentrancy during vote transfers and early termination
+- ✅ **Governance token locking**: Tokens are locked when used for proposal support or voting claims, preventing double-counting (H-03/H-04 fix)
+- ✅ **Distribution token locking**: Tokens are locked when registering for distributions, preventing double-claim attacks (H-02 fix)
+- ✅ **Operator voting restrictions**: Election-ended checks apply to all transfers, not just direct transfers (H-05 fix)
+- ✅ **Pro-rata distributions**: Distribution claims use proportional calculations to prevent pool exhaustion (M-01 fix)
+- ✅ **Controlled pool funding**: Only the proposal contract can mark distribution pools as funded, preventing griefing attacks (M-01 fix)
 - ✅ **Factory-only proposal registration**: Only the official ProposalFactory can register proposals
 - ✅ **Token holder restrictions**: Only addresses with vested governance tokens can create proposals (except join requests)
 - ✅ **Join request validation**: Non-holders can only create mint proposals for exactly 1 token to their own address
@@ -254,6 +153,7 @@ MarketDAO has been audited and hardened against common vulnerabilities:
 - ✅ **Bounded gas costs**: All operations have predictable, capped gas costs
 
 ### Scalability Guarantees
+
 - ✅ **Unlimited governance token holders**: O(1) snapshot using total supply enables 10,000+ participants
 - ✅ **O(1) election triggering**: Constant 280K gas cost regardless of holder count
 - ✅ **Automatic vesting cleanup**: Prevents unbounded array growth in vesting schedules
@@ -261,6 +161,7 @@ MarketDAO has been audited and hardened against common vulnerabilities:
 - ✅ **No gas limit concerns**: Election triggering cannot fail due to blockchain gas limits
 
 ### DoS Protection
+
 - ✅ **No holder count limits**: O(1) snapshot prevents DoS from too many token holders
 - ✅ **Vesting schedule limits**: Max 10 active schedules per address with auto-cleanup
 - ✅ **Consolidation**: Automatic merging of schedules with same unlock time
@@ -270,6 +171,10 @@ MarketDAO has been audited and hardened against common vulnerabilities:
 ## Known Limitations & Design Decisions
 
 These are intentional design choices that should be understood before deployment:
+
+### Audit-Identified Limitations
+
+- **M-02 (Stale Vested Supply)**: `getTotalVestedSupply()` may be slightly understated if users don't claim vested tokens. This makes governance slightly easier (not harder) and self-corrects through normal usage.
 
 ### Immutable vs. Changeable Parameters
 
@@ -306,234 +211,134 @@ While this flag is changeable, it affects the fundamental nature of DAO membersh
 
 **Behavior**: Support amounts are recorded when added but not automatically adjusted if users transfer their governance tokens afterward. Support only triggers elections - it does not affect voting outcomes.
 
-**Why Not Critical**: Even if support is artificially inflated, winning an election still requires:
-- 51% quorum participation from real token holders
-- Majority YES votes based on actual token holdings at election start
-- Attack cost (gas + token ownership) exceeds any benefit
+**Rationale**: Tracking support changes would require expensive on-transfer hooks. Since support only determines whether an election starts (not who wins), the security impact is minimal.
 
-**Mitigation**: Monitor for unusual support patterns. Set appropriate support thresholds to make attacks expensive.
+**Mitigation**: Proposals expire after `maxProposalAge` blocks, limiting the window for this edge case.
 
 ### Fund Locking Gas Costs
 
-**Behavior**: Functions that calculate available treasury balances (`getAvailableETH`, `getAvailableERC20`, etc.) iterate through all proposals with locked funds. Gas costs scale linearly with the number of concurrent treasury proposals in their election phase.
+**Behavior**: The `getAvailableBalance()` function iterates through all proposals with locked funds. Gas costs scale linearly with concurrent treasury proposals.
 
-**Impact**: With many concurrent treasury proposals (50+), creating new treasury proposals or triggering elections could become expensive or potentially hit gas limits.
+**Rationale**: Treasury proposals are relatively rare (compared to token transfers), and the iteration only includes proposals that have triggered elections and locked funds.
 
-**Likelihood**: Low - Most DAOs will have fewer than 10 concurrent treasury elections at any time since elections are typically short (50 blocks).
-
-**Mitigation**: If your DAO expects high concurrent treasury activity, consider shorter election durations or implementing a proposal limit.
+**Mitigation**: In practice, DAOs rarely have more than 2-3 concurrent treasury proposals in election. The gas cost remains manageable.
 
 ## MarketDAO Contract
 
-`MarketDAO.sol` implements the core DAO functionality, inheriting from OpenZeppelin's `ERC1155` and `ReentrancyGuard`.
+`MarketDAO.sol` is the core contract that inherits from ERC1155 and ReentrancyGuard.
 
 ### State Variables
 
 | Variable | Type | Description |
 |----------|------|-------------|
+| `GOVERNANCE_TOKEN_ID` | `uint256 constant` | Always 0, identifies governance tokens |
 | `name` | `string` | Name of the DAO |
-| `supportThreshold` | `uint256` | Percentage needed to trigger election |
-| `quorumPercentage` | `uint256` | Percentage needed for valid election |
-| `maxProposalAge` | `uint256` | Max age of proposal without election |
+| `supportThreshold` | `uint256` | Percentage needed to trigger election (basis points) |
+| `quorumPercentage` | `uint256` | Percentage needed for valid election (basis points) |
+| `maxProposalAge` | `uint256` | Max age of proposal in blocks |
 | `electionDuration` | `uint256` | Length of election in blocks |
-| `flags` | `uint256` | Bitfield for boolean configuration (bit 0: allow minting, bit 1: restrict purchases, bit 2: mint to purchase) |
-| `tokenPrice` | `uint256` | Price per token in wei (0 = direct sales disabled) |
+| `flags` | `uint256` | Bitfield for boolean options |
+| `tokenPrice` | `uint256` | Price per token in wei |
 | `vestingPeriod` | `uint256` | Vesting period for purchased tokens in blocks |
-| `vestingSchedules` | `mapping(address => VestingSchedule[])` | Tracks vesting schedules per holder |
-| `GOVERNANCE_TOKEN_ID` | `uint256` | Constant set to 0 |
-| `nextVotingTokenId` | `uint256` | Next ID to use for voting tokens |
+| `factory` | `address` | Address of the ProposalFactory |
 | `activeProposals` | `mapping(address => bool)` | Tracks active proposals |
-| `isVoteAddress` | `mapping(address => bool)` | Marks addresses for voting |
-| `voteAddressToProposal` | `mapping(address => address)` | Maps vote addresses to proposals |
-| `hasTreasury` | `bool` | Whether the DAO has a treasury |
-| `acceptsETH` | `bool` | Whether treasury accepts ETH |
-| `acceptsERC20` | `bool` | Whether treasury accepts ERC20 tokens |
-| `acceptsERC721` | `bool` | Whether treasury accepts ERC721 tokens |
-| `acceptsERC1155` | `bool` | Whether treasury accepts ERC1155 tokens |
-| `governanceTokenHolders` | `address[]` | List of governance token holders |
-| `isGovernanceTokenHolder` | `mapping(address => bool)` | Tracks governance token holders |
-| `tokenSupply` | `mapping(uint256 => uint256)` | Tracks token supply by ID |
-| `totalUnvestedGovernanceTokens` | `uint256` | Tracks total unvested tokens for accurate quorum |
-| `lockedFunds` | `mapping` | Tracks funds locked by treasury proposals |
-| `flags` | `uint256` | Bitfield for boolean configuration options |
-
-### Constructor
-
-```solidity
-constructor(
-    string memory _name,
-    uint256 _supportThreshold,
-    uint256 _quorumPercentage,
-    uint256 _maxProposalAge,
-    uint256 _electionDuration,
-    bool _allowMinting,
-    uint256 _tokenPrice,
-    uint256 _vestingPeriod,
-    string[] memory _treasuryConfig,
-    address[] memory _initialHolders,
-    uint256[] memory _initialAmounts
-) ERC1155("")
-```
+| `distributionLock` | `mapping(address => uint256)` | Tracks locked tokens for distribution registration (H-02 fix) |
+| `governanceLock` | `mapping(address => uint256)` | Tracks locked tokens for proposal support/voting (H-03/H-04 fix) |
+| `activeRedemptionContract` | `address` | Currently active distribution redemption contract |
 
 ### Key Functions
 
-#### Token Management
-
 ```solidity
-// Direct token purchase function (creates vesting schedule)
-function purchaseTokens() external payable nonReentrant
+// Purchase governance tokens (subject to vesting)
+function purchaseTokens(uint256 amount) external payable
 
-// Calculate unlocked (vested) governance tokens for a holder
+// Claim vested tokens
+function claimVestedTokens() external
+
+// Get vested balance for an address
 function vestedBalance(address holder) public view returns (uint256)
 
-// Mint governance tokens (called by proposals)
-function mintGovernanceTokens(address to, uint256 amount) external
+// Get transferable balance (vested minus all locks)
+function transferableBalance(address holder) public view returns (uint256)
 
-// Mint voting tokens (called by proposals)
-function mintVotingTokens(address to, uint256 tokenId, uint256 amount) external
+// Get total vested supply (for quorum calculation)
+function getTotalVestedSupply() public view returns (uint256)
 
-// Get the next available voting token ID
-function getNextVotingTokenId() external returns (uint256)
+// Lock/unlock governance tokens for distribution (H-02 fix)
+function lockForDistribution(address user, uint256 amount) external
+function unlockForDistribution(address user) external
 
-// Get total supply of a specific token ID
-function totalSupply(uint256 tokenId) external view returns (uint256)
-
-// Parameter setter functions (called by ParameterProposal)
-function setSupportThreshold(uint256 newThreshold) external
-function setQuorumPercentage(uint256 newQuorum) external
-function setMaxProposalAge(uint256 newAge) external
-function setElectionDuration(uint256 newDuration) external
-function setVestingPeriod(uint256 newPeriod) external
-function setTokenPrice(uint256 newPrice) external
-function setFlags(uint256 newFlags) external
-
-// Get total vested supply (O(1) snapshot for quorum calculations)
-function getTotalVestedSupply() external view returns (uint256)
-```
-
-#### Governance Functions
-
-```solidity
-// Get list of governance token holders
-function getGovernanceTokenHolders() external view returns (address[])
-
-// Mark a proposal as active
-function setActiveProposal(address proposal) external
-
-// Clear an active proposal
-function clearActiveProposal() external
-
-// Register vote addresses
-function registerVoteAddress(address voteAddr) external
-
-// Check if a proposal is active
-function isProposalActive(address proposal) external view returns (bool)
-```
-
-#### Treasury Functions
-
-```solidity
-// Receive ETH
-receive() external payable
-
-// Transfer ETH from treasury
-function transferETH(address payable recipient, uint256 amount) external nonReentrant
-```
-
-#### Token Transfer Overrides
-
-```solidity
-// Override ERC1155 transfer functions to handle voting tokens
-function safeTransferFrom(
-    address from,
-    address to,
-    uint256 id,
-    uint256 amount,
-    bytes memory data
-) public virtual override
-
-function safeBatchTransferFrom(
-    address from,
-    address to,
-    uint256[] memory ids,
-    uint256[] memory amounts,
-    bytes memory data
-) public virtual override
+// Add/remove governance locks for proposals (H-03/H-04 fix)
+function addGovernanceLock(address user, uint256 amount) external
+function removeGovernanceLock(address user, uint256 amount) external
 ```
 
 ## Proposal Base Contract
 
-`Proposal.sol` implements the base proposal functionality, defining the lifecycle for all proposal types.
+`Proposal.sol` is an abstract contract that defines the proposal lifecycle.
 
 ### State Variables
 
 | Variable | Type | Description |
 |----------|------|-------------|
 | `dao` | `MarketDAO` | Reference to the parent DAO |
-| `proposer` | `address` | Address that created the proposal |
-| `createdAt` | `uint256` | Block number when proposal was created |
-| `description` | `string` | Text description of the proposal |
-| `supportTotal` | `uint256` | Total support accumulated |
-| `support` | `mapping(address => uint256)` | Support by address |
-| `electionTriggered` | `bool` | Whether election has been triggered |
-| `electionStart` | `uint256` | Block number when election started |
-| `votingTokenId` | `uint256` | Token ID for voting tokens |
-| `yesVoteAddress` | `address` | Address for YES votes |
-| `noVoteAddress` | `address` | Address for NO votes |
+| `description` | `string` | Proposal description |
+| `creationBlock` | `uint256` | Block when proposal was created |
+| `support` | `mapping(address => uint256)` | Support amounts by address |
+| `supportTotal` | `uint256` | Total support amount |
+| `supportLocked` | `mapping(address => uint256)` | Locked tokens for support (H-03 fix) |
+| `votingLocked` | `mapping(address => uint256)` | Locked tokens for voting (H-04 fix) |
+| `electionTriggered` | `bool` | Whether election has started |
+| `electionStart` | `uint256` | Block when election started |
+| `snapshotTotalVotes` | `uint256` | Total voting power at election start |
 | `executed` | `bool` | Whether proposal has been executed |
-| `hasClaimed` | `mapping(address => bool)` | Tracks which holders have claimed voting tokens |
-
-### Constructor
-
-```solidity
-constructor(
-    MarketDAO _dao,
-    string memory _description
-)
-```
+| `votingTokenId` | `uint256` | ID of voting tokens for this election |
+| `yesVoteAddress` | `address` | Address representing YES votes |
+| `noVoteAddress` | `address` | Address representing NO votes |
+| `hasClaimed` | `mapping(address => bool)` | Tracks who has claimed voting tokens |
 
 ### Key Functions
 
 ```solidity
-// Add support to a proposal (checks vested balance)
+// Add support to trigger election (locks tokens - H-03 fix)
 function addSupport(uint256 amount) external
 
-// Remove support from a proposal
+// Remove support before election starts (unlocks tokens)
 function removeSupport(uint256 amount) external
 
-// Check if a proposal can trigger an election
-function canTriggerElection() public view returns (bool)
-
-// Internal function to trigger an election
-function _triggerElection() internal
-
-// Claim voting tokens during an election (lazy minting)
+// Claim voting tokens during election (locks tokens - H-04 fix)
 function claimVotingTokens() external
 
-// View how many voting tokens an address can claim
-function getClaimableAmount(address holder) external view returns (uint256)
-
-// Check for early termination of election
-function checkEarlyTermination() external virtual
-
-// Execute a successful proposal
+// Execute passed proposal after election ends
 function execute() external
 
-// Internal execution function (to be overridden)
-function _execute() internal virtual
+// Mark proposal as failed (quorum not met or rejected)
+function fail() external
 
-// Helper function to check if address is a vote address
-function isVoteAddress(address addr) external view returns (bool)
+// Check if proposal has expired
+function isExpired() public view returns (bool)
 
 // Check if election is currently active
-function isElectionActive() external virtual view returns (bool)
+function isElectionActive() public view returns (bool)
+
+// Check if proposal is resolved (executed, failed, or expired)
+function isResolved() public view returns (bool)
+
+// Release all governance locks held by this proposal for the caller (H-03/H-04 fix)
+function releaseProposalLocks() external
+
+// Get total locked amount for a user by this proposal
+function getLockedAmount(address user) external view returns (uint256)
+
+// Check for early termination when majority reached
+function checkEarlyTermination() public
 ```
 
 ## Proposal Types
 
 ### ResolutionProposal
 
-Simple text-only proposal.
+Simple text-only proposals for governance decisions that don't require on-chain actions.
 
 ```solidity
 constructor(
@@ -542,67 +347,27 @@ constructor(
 ) Proposal(_dao, _description)
 
 function _execute() internal override
+// No-op: resolution proposals are purely symbolic
 ```
 
 ### TreasuryProposal
 
-Transfers assets from the DAO treasury.
+Transfers assets from the DAO treasury to a recipient.
 
 ```solidity
 // State variables
 address public recipient;
 uint256 public amount;
-address public token;
-uint256 public tokenId;
 
 constructor(
     MarketDAO _dao,
     string memory _description,
     address _recipient,
-    uint256 _amount,
-    address _token,
-    uint256 _tokenId
+    uint256 _amount
 ) Proposal(_dao, _description)
 
 function _execute() internal override
 ```
-
-### DistributionProposal
-
-Distributes assets proportionally to all registered token holders.
-
-```solidity
-// State variables
-AssetType public assetType;        // ETH, ERC20, or ERC1155
-address public tokenAddress;        // Token contract address (if applicable)
-uint256 public tokenId;             // Token ID (for ERC1155)
-uint256 public amountPerToken;      // Amount to distribute per governance token
-address public redemptionContract;  // DistributionRedemption contract address
-mapping(address => bool) public hasRegistered;  // Tracks registered holders
-
-constructor(
-    MarketDAO _dao,
-    string memory _description,
-    AssetType _assetType,
-    address _tokenAddress,
-    uint256 _tokenId,
-    uint256 _amountPerToken
-) Proposal(_dao, _description)
-
-// Register to receive distribution
-function registerForDistribution() external
-
-// Check if address has registered
-function isRegistered(address holder) external view returns (bool)
-
-function _execute() internal override
-```
-
-**Key Features:**
-- Token holders register during support/election phases
-- On execution, creates a DistributionRedemption contract
-- Transfers funds to redemption contract for claiming
-- Each registered holder can claim their proportional share at any time
 
 ### MintProposal
 
@@ -666,52 +431,80 @@ function _execute() internal override
 
 Each parameter type has built-in validation to prevent invalid configurations.
 
+### DistributionProposal
+
+Creates proportional distributions of treasury assets to all governance token holders.
+
+```solidity
+// State variables
+address public token;           // Token address (address(0) for ETH)
+uint256 public tokenId;         // Token ID for ERC1155 (0 for ETH/ERC20)
+uint256 public amountPerToken;  // Target amount per governance token
+DistributionRedemption public redemptionContract;
+
+constructor(
+    MarketDAO _dao,
+    string memory _description,
+    address _token,
+    uint256 _tokenId,
+    uint256 _amountPerToken
+) Proposal(_dao, _description)
+
+// Register for distribution before election ends
+function registerForDistribution() external
+
+function _execute() internal override
+```
+
 ## DistributionRedemption Contract
 
 `DistributionRedemption.sol` is a standalone contract created by DistributionProposal to manage proportional asset distributions.
+
+### Security Features
+
+- **H-02 FIX**: Locks governance tokens in MarketDAO when users register, preventing the same tokens from being used to register multiple addresses for the same distribution
+- **M-01 FIX**: Uses pro-rata distribution to ensure all registered users can claim. Each user receives: `(userShares / totalRegisteredShares) * actualPoolBalance`. This means `amountPerGovernanceToken` is a TARGET, not a guarantee.
+- **M-01 FIX (Part 2)**: Only the proposal can mark the pool as funded via `markPoolFunded()`. This prevents griefing attacks where attackers send dust to snapshot a tiny balance before real funds arrive.
 
 ### State Variables
 
 | Variable | Type | Description |
 |----------|------|-------------|
-| `assetType` | `AssetType` | Type of asset being distributed (ETH, ERC20, ERC1155) |
-| `tokenAddress` | `address` | Contract address for token distributions |
-| `tokenId` | `uint256` | Token ID for ERC1155 distributions |
-| `amountPerToken` | `uint256` | Amount distributed per governance token |
-| `registeredHolders` | `mapping(address => uint256)` | Maps registered addresses to their token balances |
+| `proposal` | `address` | The distribution proposal that created this contract |
+| `dao` | `IMarketDAO` | Reference to the MarketDAO contract |
+| `token` | `address` | Token address (address(0) for ETH) |
+| `tokenId` | `uint256` | Token ID for ERC1155 (0 for ETH/ERC20) |
+| `amountPerGovernanceToken` | `uint256` | Target amount per governance token |
+| `registeredBalance` | `mapping(address => uint256)` | Registered governance token balances |
+| `totalRegisteredGovernanceTokens` | `uint256` | Total registered governance tokens |
 | `hasClaimed` | `mapping(address => bool)` | Tracks which addresses have claimed |
-
-### Constructor
-
-```solidity
-constructor(
-    AssetType _assetType,
-    address _tokenAddress,
-    uint256 _tokenId,
-    uint256 _amountPerToken,
-    address[] memory _holders,
-    uint256[] memory _balances
-)
-```
+| `poolFunded` | `bool` | Whether the pool has been officially funded |
+| `totalPoolBalance` | `uint256` | Snapshot of pool balance when funded |
 
 ### Key Functions
 
 ```solidity
-// Claim proportional distribution
+// Register a user for distribution (only callable by proposal)
+function registerClaimant(address user, uint256 governanceTokenBalance) external
+
+// Claim distributed funds (pro-rata calculation)
 function claim() external
 
-// View claimable amount for an address
+// Release lock without claiming (after distribution ends)
+function releaseLock() external
+
+// Mark pool as funded (only callable by proposal)
+function markPoolFunded() external
+
+// View claimable amount (pro-rata based on actual pool balance)
 function getClaimableAmount(address holder) external view returns (uint256)
 
-// Check if address has claimed
-function hasClaimed(address holder) external view returns (bool)
-```
+// Check if address has registered
+function isRegistered(address holder) external view returns (bool)
 
-**Security Features:**
-- Each holder can only claim once
-- Claims are proportional to registered governance token balance
-- Supports ETH, ERC20, and ERC1155 assets
-- Gas efficient: holders pay their own claim gas
+// Check if distribution has ended
+function isDistributionEnded() external view returns (bool)
+```
 
 ## ProposalFactory Contract
 
@@ -733,7 +526,14 @@ function hasClaimed(address holder) external view returns (bool)
 ### Constructor
 
 ```solidity
-constructor(MarketDAO _dao)
+constructor(
+    MarketDAO _dao,
+    address _resolutionImpl,
+    address _treasuryImpl,
+    address _mintImpl,
+    address _parameterImpl,
+    address _distributionImpl
+)
 ```
 
 ### Key Functions
@@ -748,21 +548,10 @@ function createResolutionProposal(
 function createTreasuryProposal(
     string memory description,
     address recipient,
-    uint256 amount,
-    address token,
-    uint256 tokenId
+    uint256 amount
 ) external returns (TreasuryProposal)
 
-// Create a distribution proposal
-function createDistributionProposal(
-    string memory description,
-    AssetType assetType,
-    address tokenAddress,
-    uint256 tokenId,
-    uint256 amountPerToken
-) external returns (DistributionProposal)
-
-// Create a token minting proposal
+// Create a mint proposal
 function createMintProposal(
     string memory description,
     address recipient,
@@ -772,47 +561,56 @@ function createMintProposal(
 // Create a parameter change proposal
 function createParameterProposal(
     string memory description,
-    ParameterType parameterType,
+    ParameterProposal.ParameterType parameterType,
     uint256 newValue
 ) external returns (ParameterProposal)
 
-// Get a proposal by index
+// Create a distribution proposal
+function createDistributionProposal(
+    string memory description,
+    address token,
+    uint256 tokenId,
+    uint256 amountPerToken
+) external returns (DistributionProposal)
+
+// Get proposal by index
 function getProposal(uint256 index) external view returns (address)
 ```
 
 ## Token Specifications
 
-### Governance Tokens (ID 0)
+### Governance Tokens (Token ID 0)
 
-- **Usage**: Create and support proposals, receive voting tokens
-- **Distribution**: Initial allocation, direct purchase, or mint proposals
-- **Transfer**: Freely transferable ERC1155 tokens
-- **Vesting**: Purchased tokens are subject to vesting period before they can be used for governance
-- **Governance Rights**: Only vested (unlocked) tokens can be used to support proposals or participate in voting
+- Standard ERC1155 token with ID 0
+- Represent voting power and proposal creation rights
+- Subject to vesting when purchased
+- Can be locked for distribution registration (H-02 fix)
+- Can be locked for proposal support and voting (H-03/H-04 fix)
+- Transferable only when vested AND not locked
 
-### Voting Tokens (IDs 1+)
+### Voting Tokens (Token IDs 1+)
 
-- **Creation**: One unique token ID per election
-- **Distribution**: Lazy minting - holders must claim tokens during election period by calling `claimVotingTokens()`
-- **Amount**: 1:1 with the holder's vested governance token balance at time of claim
-- **Usage**: Sent to YES/NO addresses to vote
-- **Transfer**: Freely transferable during election period
-- **Lifecycle**: Become worthless after election concludes
-- **Gas Efficiency**: Only participants who vote pay gas to claim their tokens
+- Created for each election
+- Claimed from vested governance token balance
+- Fully transferable during election period
+- Transfer to YES/NO addresses counts as voting
+- Election-ended checks apply to ALL transfers, not just direct ones (H-05 fix)
 
 ## Deployment Guide
 
 ### Prerequisites
 
-- Solidity ^0.8.20
-- OpenZeppelin Contracts
-- Foundry or similar deployment tool
+- Foundry installed (`curl -L https://foundry.paradigm.xyz | bash`)
+- Private key with funds for deployment
+- RPC URL for target network
 
 ### Deployment Steps
 
-1. Deploy the MarketDAO contract with desired parameters
-2. Deploy the ProposalFactory contract, passing the MarketDAO address
-3. Verify contracts on block explorer (optional)
+1. Clone the repository and install dependencies
+2. Configure deployment parameters in `script/Deploy.s.sol`
+3. Deploy the MarketDAO contract with desired parameters
+4. Deploy the ProposalFactory contract, passing the MarketDAO address
+5. Verify contracts on block explorer (optional)
 
 ### Constructor Parameters
 

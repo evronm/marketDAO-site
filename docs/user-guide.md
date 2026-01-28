@@ -8,7 +8,7 @@ permalink: /docs/user-guide/
 
 1. [Introduction](#introduction)
 2. [Getting Started](#getting-started)
-   - [Connecting Your Wallet](#connecting-your-wallet)
+   - [Deploying a MarketDAO Instance](#deploying-a-marketdao-instance)
    - [Understanding the Dashboard](#understanding-the-dashboard)
 3. [Join Request System (For Non-Members)](#join-request-system-for-non-members)
    - [How to Submit a Join Request](#how-to-submit-a-join-request)
@@ -16,6 +16,7 @@ permalink: /docs/user-guide/
 4. [Governance Tokens](#governance-tokens)
    - [Acquiring Governance Tokens](#acquiring-governance-tokens)
    - [Checking Your Balance](#checking-your-balance)
+   - [Token Locking](#token-locking)
 5. [Creating Proposals](#creating-proposals)
    - [Resolution Proposals](#resolution-proposals)
    - [Treasury Proposals](#treasury-proposals)
@@ -27,8 +28,10 @@ permalink: /docs/user-guide/
    - [Understanding the Election Process](#understanding-the-election-process)
    - [Voting on Proposals](#voting-on-proposals)
    - [Trading Voting Tokens](#trading-voting-tokens)
-8. [Viewing Proposal History](#viewing-proposal-history)
-9. [FAQ](#faq)
+8. [Releasing Locked Tokens](#releasing-locked-tokens)
+9. [Claiming Distributions](#claiming-distributions)
+10. [Viewing Proposal History](#viewing-proposal-history)
+11. [FAQ](#faq)
 
 ## Introduction
 
@@ -61,356 +64,231 @@ If you don't have governance tokens yet, you can request to join the DAO through
 ### How to Submit a Join Request
 
 1. **Connect Your Wallet**: Connect to the DAO interface with a wallet that does not hold governance tokens
-2. **Access Join Request Interface**: You'll see a "Request to Join DAO" interface instead of the standard proposal creation options
-3. **Introduce Yourself**: Provide a description explaining:
-   - Who you are
-   - Why you want to join the DAO
-   - What you can contribute to the community
-4. **Submit Request**: Click the submit button to create your join request
-5. **One Request Per Address**: You can only submit one join request per wallet address
+2. **Access Join Request**: You'll see a "Request to Join" option instead of the standard proposal creation interface
+3. **Write Your Introduction**: Describe yourself and why you want to join the DAO
+4. **Submit Request**: Your join request is created as a special mint proposal for 1 governance token
 
 ### Join Request Process
 
-Your join request follows the standard proposal lifecycle:
-
-1. **Support Phase**: Existing members review your request and can add support
-   - Your request needs to reach the support threshold (typically 20% of governance tokens)
-   - Members evaluate your introduction and decide if they support your admission
-
-2. **Election Phase**: Once support threshold is met, an election begins
-   - Existing members vote YES or NO on admitting you
-   - The election must meet quorum requirements (typically 51% participation)
-
-3. **Outcome**:
-   - **If Approved**: You receive 1 governance token and become a full member with all rights and privileges
-   - **If Rejected**: Your request is declined, but you remain able to observe the DAO
-
-**Important Notes:**
-- Non-holders can only create join requests (1 token to yourself)
-- Token holders can create regular mint proposals for any amount to any address
-- Join requests work in both open and restricted purchase mode DAOs
-- Even if rejected, the on-chain record shows you attempted to participate
-
-### Purchase Restrictions
-
-DAOs can be configured with purchase restrictions, which can be changed through Parameter Proposals (democratic voting):
-
-- **Open Mode (default)**: Anyone can purchase governance tokens directly without approval
-- **Restricted Mode**: Only existing token holders can purchase additional tokens
-  - New members must be approved via join requests or mint proposals
-  - This protects against hostile takeovers by outsiders
-  - Best for investment clubs, private organizations, and security-focused DAOs
-
-The purchase restriction setting (bit 1 of the flags parameter) can be toggled through a Parameter Proposal, allowing the DAO to evolve its membership model as needed. Check the DAO's current configuration by connecting your wallet - the interface will show you what options are available.
+1. **Support Phase**: Existing members can add support to your join request
+2. **Election**: If the support threshold is reached, an election is triggered
+3. **Voting**: Members vote YES or NO on your admission
+4. **Resolution**: If approved, you receive 1 governance token and become a member
 
 ## Governance Tokens
 
-Governance tokens (Token ID 0) are the foundation of MarketDAO participation. They allow you to:
-- Create and support proposals
-- Claim voting tokens during elections
-- Participate in DAO governance
-
 ### Acquiring Governance Tokens
 
-There are two ways to acquire governance tokens:
+There are several ways to acquire governance tokens:
 
-1. **Direct Purchase:** On the Dashboard, enter the amount of tokens you wish to purchase and click "Purchase". The cost will be calculated based on the current token price.
-
-2. **Secondary Markets:** Governance tokens can be bought and sold on supported ERC1155 marketplaces. Look for the "Buy/Sell on Rarible" link on the Dashboard for direct access.
-
-> **Note:** If the token price is set to 0, direct purchases are disabled.
-
-#### Token Vesting
-
-Governance tokens acquired through direct purchase are subject to a vesting period:
-- **Vesting Period:** Purchased tokens are locked for a configured number of blocks
-- **Unlocking:** Tokens gradually become available for governance as they vest
-- **Governance Rights:** Only vested (unlocked) tokens can be used to support proposals or claim voting tokens
-- **Trading:** You can transfer governance tokens at any time, but the vesting schedule transfers with them
-- **Automatic Cleanup:** Expired vesting schedules are automatically removed when transferring tokens
-- **Schedule Consolidation:** Multiple purchases with the same unlock time are automatically merged
-- **Schedule Limit:** Maximum 10 active vesting schedules per address (prevents DoS attacks)
-- **Manual Cleanup:** You can call `cleanupMyVestingSchedules()` to remove expired schedules anytime
-- **Dashboard Display:** The interface shows total, vested, and unvested balances separately so you can track your governance power
-
-This vesting mechanism protects the DAO from hostile takeover attempts where an attacker might try to purchase a large number of tokens and immediately vote themselves control of the treasury.
-
-**Note**: Initial token holders (those who received tokens when the DAO was created) are not subject to vesting restrictions.
+1. **Initial Distribution**: Tokens allocated at DAO creation
+2. **Direct Purchase**: Buy tokens at the configured price (if enabled)
+3. **Join Request**: Submit a join request to be voted in (if purchases are restricted)
+4. **Mint Proposal**: Receive tokens through an approved mint proposal
 
 ### Checking Your Balance
 
-Your governance token balance is displayed prominently on the Dashboard under "Your Token Balance".
+The dashboard displays several balance types:
+
+- **Total Balance**: All governance tokens you hold
+- **Vested Balance**: Tokens available for governance (purchased tokens vest over time)
+- **Transferable Balance**: Tokens you can transfer (vested minus locked)
+- **Locked Balance**: Tokens locked for active proposals or distributions
+
+### Token Locking
+
+To prevent double-counting attacks, governance tokens are automatically locked when you:
+
+- **Add Support to a Proposal**: Tokens are locked until the proposal resolves
+- **Claim Voting Tokens**: Your vested balance is locked during the election
+- **Register for a Distribution**: Tokens are locked until you claim or the distribution ends
+
+**Important**: Locked tokens cannot be transferred, but they still count toward your governance power for the actions that locked them.
 
 ## Creating Proposals
 
-MarketDAO supports five types of proposals. To create a proposal:
-
-1. Navigate to the Dashboard
-2. Scroll to the "Create Proposal" section
-3. Select the proposal type
-4. Fill in the required information
-5. Click the "Create" button for your chosen proposal type
+Only addresses with vested governance tokens can create proposals (except join requests). Each proposal type serves a different purpose:
 
 ### Resolution Proposals
 
-Resolution proposals are text-only governance decisions.
+Text-only governance decisions for signaling and community direction.
 
-Required information:
-- **Description:** A clear explanation of what is being proposed
+**Use for:**
+- Community guidelines or policies
+- Strategic direction decisions
+- Non-binding statements
 
 ### Treasury Proposals
 
-Treasury proposals transfer assets from the DAO treasury to a specified recipient.
+Transfer assets from the DAO treasury to a recipient.
 
-Required information:
-- **Description:** Purpose of the transfer
-- **Recipient Address:** Wallet address that will receive the assets
-- **Amount:** Quantity to transfer
-- **Token Type:** ETH, ERC20, ERC721, or ERC1155
-- **Token Address:** Contract address (for token types other than ETH)
-- **Token ID:** Specific token ID (for ERC721 or ERC1155)
+**Parameters:**
+- Recipient address
+- Amount to transfer
+- Asset type (ETH, ERC20, ERC721, or ERC1155)
+
+**Note:** Treasury funds are locked when the election triggers, not at proposal creation.
 
 ### Mint Proposals
 
-Mint proposals create new governance tokens for a specified recipient.
+Create new governance tokens (requires minting to be enabled).
 
-Required information:
-- **Description:** Purpose of the token minting
-- **Recipient Address:** Wallet address that will receive the new tokens
-- **Amount:** Number of governance tokens to mint
+**Parameters:**
+- Recipient address
+- Amount of tokens to mint
 
-> **Note:** Mint proposals will only work if token minting is allowed in the DAO configuration.
+**Use for:**
+- Rewarding contributors
+- Adding new members (alternative to join requests)
+- Expanding governance participation
 
 ### Parameter Proposals
 
-Parameter proposals allow you to change DAO configuration parameters through democratic governance. This is a powerful feature that gives the community control over how the DAO operates.
+Modify DAO configuration through governance.
 
-Required information:
-- **Description:** Justification for the parameter change
-- **Parameter Type:** Select which parameter to modify
-- **New Value:** The proposed new value for the selected parameter
-
-**Available Parameter Types:**
-
-1. **Support Threshold**
-   - What it controls: Percentage of governance tokens needed to trigger an election
-   - Valid range: 0.01% to 100% (in basis points: > 0 and <= 10000)
-   - Example use: Lower to make elections easier to trigger, raise to require more community backing
-
-2. **Quorum Percentage**
-   - What it controls: Percentage participation needed for a valid election
-   - Valid range: 1% to 100% (in basis points: >= 100 and <= 10000)
-   - Example use: Lower for faster decisions, raise to require broader participation
-
-3. **Max Proposal Age**
-   - What it controls: How long a proposal can exist before expiring (in blocks)
-   - Valid range: Must be > 0
-   - Example use: Increase to give proposals more time to gather support
-
-4. **Election Duration**
-   - What it controls: Length of the voting period (in blocks)
-   - Valid range: Must be > 0
-   - Example use: Extend for more deliberation time, shorten for faster decisions
-
-5. **Vesting Period**
-   - What it controls: Vesting period for purchased governance tokens (in blocks)
-   - Valid range: >= 0 (0 disables vesting)
-   - Example use: Increase for more protection against hostile takeovers, decrease to allow faster participation
-
-6. **Token Price**
-   - What it controls: Price for direct token purchases (in wei)
-   - Valid range: Must be > 0 (or 0 to disable direct sales)
-   - Example use: Adjust based on DAO treasury needs or token value
-
-7. **Flags**
-   - What it controls: Boolean configuration options (bitfield)
-   - Valid range: 0-7 (bits 0-2 only)
-   - Bits:
-     - Bit 0: Allow minting (can new governance tokens be minted)
-     - Bit 1: Restrict purchases (limit to existing holders)
-     - Bit 2: Mint to purchase (mint new tokens vs transfer from treasury)
-   - Example use: Enable/disable features like token minting or purchase restrictions
-
-**Important Notes:**
-- Parameter proposals provide validation to prevent invalid configurations
-- Changes take effect immediately when the proposal is executed
-- The DAO name and treasury configuration cannot be changed (set at deployment)
-- All other parameters including flags (purchase restrictions, minting, etc.) can be changed through governance
+**Changeable Parameters:**
+- Support Threshold (0-100% in basis points)
+- Quorum Percentage (1-100% in basis points)
+- Max Proposal Age (in blocks)
+- Election Duration (in blocks)
+- Vesting Period (in blocks, 0 disables)
+- Token Price (in wei, 0 disables direct sales)
+- Flags (allow minting, restrict purchases, mint to purchase)
 
 ### Distribution Proposals
 
-Distribution proposals enable proportional distributions of assets to all token holders based on their governance token holdings. This is useful for revenue sharing, dividends, airdrops, or fair liquidation.
+Proportionally distribute treasury assets to all governance token holders.
 
-Required information:
-- **Description:** Purpose of the distribution
-- **Asset Type:** ETH, ERC20, or ERC1155
-- **Token Address:** Contract address (for ERC20 or ERC1155)
-- **Token ID:** Specific token ID (for ERC1155 only)
-- **Amount Per Token:** How much to distribute per governance token held
+**Parameters:**
+- Asset to distribute (ETH, ERC20, or ERC1155)
+- Amount per governance token (target)
 
-**How Distribution Works:**
-
-1. **Create Proposal:** Specify what asset to distribute and how much per governance token
-2. **Registration Phase:** During the support and election phases, token holders must register to receive the distribution
-   - Click "Register for Distribution" on the proposal card
-   - Only registered holders will receive distributions
-   - Registration locks in your governance token balance
-3. **Standard Voting:** The proposal follows normal support → election → voting flow
-4. **Execution:** If approved, funds are transferred to a DistributionRedemption contract
-5. **Claiming:** After execution:
-   - Go to the History tab
-   - Find the executed distribution proposal
-   - Click "Claim Distribution" to receive your proportional share
-   - You can claim anytime after execution
-
-**Example Use Cases:**
-- **Revenue Sharing:** Distribute profits to all token holders based on their ownership
-- **Dividend Payments:** Regular distributions from treasury earnings
-- **Token Airdrops:** Distribute ERC20 tokens or NFTs proportionally
-- **DAO Liquidation:** Fair distribution when winding down
-
-**Important:**
-- You must register during the support/election phase to receive the distribution
-- Claiming is done individually - each holder pays their own gas to claim
-- Unclaimed distributions remain in the contract indefinitely
-- The amount you receive is based on your registered balance (locked when you register)
+**Note:** Actual payouts are calculated pro-rata based on total registered shares vs actual pool balance.
 
 ## Supporting Proposals
 
-For a proposal to trigger an election, it needs to reach the support threshold. To support a proposal:
+Before a proposal goes to election, it needs to gather support from governance token holders.
 
-1. Navigate to the "Proposals" tab
-2. Find the proposal you wish to support
-3. Enter the amount of support to add (this is limited by your governance token holdings)
-4. Click "Add Support"
-5. Confirm the transaction in your wallet
-6. Once the support threshold is reached, the proposal will automatically trigger an election
+1. **View Proposal**: Navigate to the Proposals tab and select a proposal
+2. **Add Support**: Enter the amount of tokens you want to use for support
+3. **Confirm**: Submit the transaction
+
+**Token Locking**: When you add support, those tokens are **locked** until the proposal resolves. You can remove support before the election triggers to unlock your tokens.
+
+**Threshold**: Once total support reaches the configured threshold (e.g., 20% of vested supply), an election is automatically triggered.
 
 ## Participating in Elections
 
-When a proposal reaches the support threshold, an election is triggered. This is where MarketDAO's unique market-driven governance comes into play.
-
 ### Understanding the Election Process
 
-The election process follows these steps:
-
-1. **Claim Period:** When an election starts, governance token holders can claim voting tokens (Token ID corresponding to the proposal ID) equal to their vested governance token balance
-2. **Trading Period:** During the election, voting tokens can be freely bought and sold
-3. **Voting Period:** Voting tokens can be used to cast votes by sending them to YES or NO addresses
-4. **Result Determination:** At the end of the election period, the proposal passes if the YES votes exceed NO votes and the quorum threshold is met
-
-#### Claiming Voting Tokens
-
-MarketDAO uses a "lazy minting" approach to reduce gas costs:
-
-1. Navigate to the "Elections" tab to view active elections
-2. For each election, you'll see a "Claim Voting Tokens" button if you haven't claimed yet
-3. Click the button to claim your voting tokens (you'll receive tokens equal to your vested governance token balance)
-4. Confirm the transaction in your wallet
-5. Once claimed, you can vote with your tokens or trade them on supported marketplaces
-
-**Why lazy minting?** Instead of automatically distributing voting tokens to all governance token holders when an election starts (which would cost significant gas), tokens are only minted when holders actively claim them. This means:
-- Proposal creators don't pay massive gas fees to distribute tokens
-- Only participants who actually want to vote pay gas to claim their tokens
-- Non-participating token holders don't waste gas on tokens they won't use
+1. **Election Triggers**: When support threshold is reached
+2. **Snapshot**: Your voting power is frozen at election start
+3. **Claim Tokens**: You must claim your voting tokens to participate
+4. **Vote or Trade**: Use voting tokens to vote or trade them
+5. **Resolution**: Election ends after the duration (or early if majority reached)
 
 ### Voting on Proposals
 
-To vote on an active proposal:
+1. **Claim Voting Tokens**: Click "Claim Voting Tokens" to receive tokens equal to your vested governance balance
+2. **Cast Your Vote**: Transfer voting tokens to the YES or NO address
+3. **Full or Partial**: You can vote with all or some of your voting tokens
 
-1. Navigate to the "Elections" tab
-2. Find the active election you wish to vote on
-3. Select "Vote YES" or "Vote NO"
-4. Enter the number of voting tokens to use
-5. Click "Cast Vote"
-6. Confirm the transaction in your wallet
+**Token Locking**: When you claim voting tokens, your governance tokens are **locked** until the proposal resolves.
 
 ### Trading Voting Tokens
 
-The ability to trade voting tokens is what makes MarketDAO unique. To trade voting tokens:
+Voting tokens are standard ERC1155 tokens and can be:
 
-1. Navigate to the "Elections" tab
-2. Find the election with voting tokens you want to trade
-3. Click on "Trade Tokens"
-4. You'll be redirected to the marketplace where you can list your tokens for sale or purchase tokens from others
+- Transferred to other addresses
+- Traded on NFT marketplaces
+- Exchanged peer-to-peer
 
-> **Note:** You can also use other compatible marketplaces that support ERC1155 tokens.
+**Strategy**: If you feel strongly about a proposal, you can acquire additional voting tokens. If you're indifferent, you can sell your voting tokens to someone who cares more.
+
+**Restriction**: Voting tokens cannot be transferred to vote addresses after the election ends.
+
+## Releasing Locked Tokens
+
+After a proposal resolves (executed, failed, or expired), you need to release your locked tokens:
+
+1. **Navigate to Proposal**: Find the resolved proposal
+2. **Release Locks**: Click "Release Locks" to unlock your tokens
+3. **Confirm**: Submit the transaction
+
+**Why Manual Release?** This design shifts gas costs to users who need to transfer tokens, rather than making the proposal creator pay for everyone during execution.
+
+**Distribution Locks**: For distributions, you can release locks by either:
+- Claiming your distribution (automatically releases lock)
+- Calling "Release Lock" after the distribution ends (if you don't want to claim)
+
+## Claiming Distributions
+
+If you registered for a distribution proposal that passed:
+
+1. **Wait for Execution**: The proposal must be executed first
+2. **Navigate to Distribution**: Find the distribution in your active claims
+3. **Claim**: Click "Claim" to receive your share
+4. **Receive Assets**: Pro-rata share is transferred to your wallet
+
+**Pro-Rata Calculation**: Your share = (your registered tokens / total registered tokens) × actual pool balance
+
+**Note**: The "amount per token" shown is a target. Actual amounts depend on total registrations and pool funding.
 
 ## Viewing Proposal History
 
-To view past proposals and elections:
+The History tab shows all past proposals with their outcomes:
 
-1. Navigate to the "History" tab
-2. Browse through the list of past proposals
-3. Click on any proposal to view details including support levels, voting results, and transaction history
+- **Executed**: Proposal passed and was executed
+- **Failed**: Proposal didn't pass or quorum wasn't met
+- **Expired**: Proposal didn't reach support threshold in time
 
 ## FAQ
 
-**Q: What happens to my purchased governance tokens during the vesting period?**
-A: During the vesting period, you own the tokens and can transfer them, but you cannot use them for governance (supporting proposals or claiming voting tokens) until they vest. The vesting schedule transfers with the tokens if you sell them.
+### Why are my tokens locked?
 
-**Q: Do I have to claim voting tokens for every election?**
-A: Yes, voting tokens must be claimed separately for each election. You can only claim once per election, and the amount you receive equals your vested governance token balance at the time of claim.
+Tokens are locked when you:
+- Add support to an active proposal
+- Claim voting tokens during an election
+- Register for a distribution
 
-**Q: What if I don't claim my voting tokens?**
-A: If you don't claim your voting tokens, you won't be able to vote in that election. However, your vested governance tokens are still counted in quorum and majority calculations, so unclaimed tokens don't affect the validity of the election results.
+This prevents the same tokens from being used multiple times (double-counting attacks).
 
-**Q: Can I get my governance tokens back after voting?**
-A: No, once governance tokens are used to create or support proposals, they remain locked until the proposal process completes.
+### How do I unlock my tokens?
 
-**Q: What happens if I sell my voting tokens during an election?**
-A: When you sell voting tokens, you're effectively transferring your voting power to the buyer. The buyer can then use those tokens to vote or sell them to others.
+After the proposal resolves, navigate to it and click "Release Locks". This unlocks your tokens for future use.
 
-**Q: Why would someone buy my voting tokens?**
-A: People may buy voting tokens if they feel strongly about the outcome of a proposal. This creates a market-based assessment of the proposal's importance to different stakeholders.
+### Why can't I transfer my tokens?
 
-**Q: What happens if the quorum isn't reached?**
-A: If the quorum threshold isn't met by the end of the election period, the proposal fails regardless of the YES/NO vote balance.
+Check if you have locked tokens. Your transferable balance = vested balance - locked balance. Release locks from resolved proposals to increase your transferable balance.
 
-**Q: Can proposals be canceled?**
-A: Once created, proposals cannot be canceled. They will either fail to reach the support threshold and expire, or they will proceed to an election and be decided by voting.
+### What happens if I sell my governance tokens after adding support?
 
-**Q: What happens if my join request is rejected?**
-A: If your join request is rejected, you do not receive any governance tokens and cannot submit another join request from the same wallet address. However, you can still observe the DAO's activities and proposals.
+Your support amount remains recorded, but you won't be able to vote with tokens you no longer hold. Support only determines if an election triggers—it doesn't affect voting outcomes.
 
-**Q: Can I submit multiple join requests?**
-A: No, you can only submit one join request per wallet address. This prevents spam and ensures that members take join requests seriously. If you need to try again, you would need to use a different wallet address.
+### Can I vote after selling some governance tokens?
 
-**Q: How do I know if a DAO has purchase restrictions enabled?**
-A: Connect your wallet to the DAO interface. If the DAO has purchase restrictions and you don't hold tokens, you'll see the join request interface instead of a direct purchase option. DAOs in open mode will show direct purchase options to everyone.
+Yes, but only with the vested balance you had when you claimed voting tokens. Voting power is snapshotted at election start.
 
-**Q: What are vesting schedules and why do they matter?**
-A: Vesting schedules track when your purchased tokens unlock for governance use. You can have up to 10 active schedules, and the system automatically cleans up expired ones. This prevents attacks where someone might try to accumulate many small purchases to overflow the system.
+### What if a proposal expires?
 
-**Q: Can I see how many vested vs. unvested tokens I have?**
-A: Yes, the dashboard displays your total, vested, and unvested balances separately so you always know how much governance power you currently have available.
+If a proposal doesn't reach the support threshold before `maxProposalAge` blocks, it expires. You can release your locked tokens from expired proposals.
 
-**Q: What parameters can be changed through parameter proposals?**
-A: Seven parameters can be changed: support threshold, quorum percentage, max proposal age, election duration, vesting period, token price, and flags (boolean options including purchase restrictions, minting, and mint-to-purchase). Only the DAO name and treasury configuration are permanent and cannot be changed after deployment.
+### How does early termination work?
 
-**Q: Can parameter changes be reversed?**
-A: Yes, any parameter change can be reversed by creating another parameter proposal to change it back. The community always has the power to adjust parameters through democratic voting.
+If one side receives more than 50% of all possible votes before the election ends, the election terminates early. This prevents unnecessary waiting when the outcome is already determined.
 
-**Q: What happens if I submit an invalid parameter value?**
-A: Parameter proposals have built-in validation. For example, you cannot set quorum below 1% or support threshold above 100%. Invalid values will be rejected when you try to create the proposal.
+### What's the difference between vested and unvested tokens?
 
-**Q: How do I change a flag bit?**
-A: Flags are stored as a bitfield (0-7). To change a specific flag, you need to calculate the new bitfield value with that flag toggled. The frontend provides checkboxes to make this easier. For example, if current flags are 3 (bits 0 and 1 set) and you want to also enable bit 2, submit 7 (all three bits set).
+Purchased tokens vest over a configurable period. Unvested tokens count toward your balance but cannot be used for governance (supporting, voting, or transferring). This prevents governance attacks from flash purchases.
 
-**Q: What are Distribution Proposals?**
-A: Distribution Proposals allow the DAO to distribute assets (ETH, ERC20, ERC1155) proportionally to all token holders based on their governance token holdings. This is useful for revenue sharing, dividends, airdrops, or fair liquidation when winding down a DAO.
+### Can I participate in multiple proposals simultaneously?
 
-**Q: How do I receive a distribution?**
-A: You must register for the distribution during the support or election phase by clicking "Register for Distribution" on the proposal card. If the proposal passes, you can then claim your proportional share from the History tab anytime after execution.
+Yes! Your locked tokens accumulate across all active proposals. For example, if you support Proposal A with 30 tokens and Proposal B with 20 tokens, 50 tokens are locked total.
 
-**Q: What happens if I forget to register for a distribution?**
-A: If you don't register before the election ends, you won't be eligible to claim that specific distribution. The distributed funds will only go to registered token holders. Make sure to register during the support/election phase if you want to participate.
+### What is the quorum requirement?
 
-**Q: Can I claim a distribution multiple times?**
-A: No, each holder can only claim once per distribution proposal. After you claim your share, it will show as "Already Claimed" in the interface.
+Quorum is the minimum percentage of vested supply that must vote (YES + NO) for an election to be valid. If quorum isn't met, the proposal fails regardless of YES/NO ratio.
 
-**Q: What happens to unclaimed distributions?**
-A: Unclaimed distributions remain in the DistributionRedemption contract indefinitely. Registered holders can claim their share at any time, even months or years after the proposal execution.
+### How are distributions calculated?
 
-**Q: Can purchase restrictions be changed after deployment?**
-A: Yes, purchase restrictions (bit 1 of the flags parameter) can be enabled or disabled through Parameter Proposals. This allows the DAO to democratically evolve from open membership to restricted membership or vice versa. However, such changes should only be made with broad community consensus as they fundamentally affect the nature of DAO membership.
+Distribution uses pro-rata calculation: your share = (your registered tokens / total registered tokens) × actual pool balance. This ensures all registered users can claim even if the pool has less than expected.

@@ -1,13 +1,13 @@
 ---
 layout: default
-title: Market-Driven Governance
+title: MarketDAO - Market-Driven Governance
 ---
 
 <section class="section" id="concept">
     <h2>Core Concept</h2>
     <p>
-        Unlike traditional DAOs where voting power is static, MarketDAO introduces a revolutionary approach:
-        <strong>tradable voting tokens for each election</strong>.
+        MarketDAO is a governance framework that brings market forces to bear on group decisions.
+        Unlike traditional DAOs where voting power is static, MarketDAO introduces tradable voting tokens for each election.
     </p>
     <p>
         This creates a dynamic governance system where voters can:
@@ -31,28 +31,8 @@ title: Market-Driven Governance
             <p>Voting tokens are freely transferable during elections, allowing market forces to influence governance outcomes.</p>
         </div>
         <div class="feature-card">
-            <h3>Governance Token Vesting</h3>
-            <p>Purchased governance tokens are subject to a vesting period with automatic cleanup and consolidation, protecting the DAO from hostile takeover attempts.</p>
-        </div>
-        <div class="feature-card">
-            <h3>Lazy Vote Token Distribution</h3>
-            <p>Voting tokens are minted on-demand as participants claim them, reducing gas costs for proposal creators.</p>
-        </div>
-        <div class="feature-card">
-            <h3>Purchase Restrictions (Optional)</h3>
-            <p>Optionally limit token purchases to existing holders, requiring new members to be approved via governance proposals.</p>
-        </div>
-        <div class="feature-card">
-            <h3>Join Request System</h3>
-            <p>Non-holders can submit join requests to become members, which are voted on by existing token holders.</p>
-        </div>
-        <div class="feature-card">
-            <h3>Snapshot-Based Voting Power</h3>
-            <p>Unlimited scalability with O(1) snapshot creation, supporting 10,000+ holders without gas limit concerns.</p>
-        </div>
-        <div class="feature-card">
             <h3>Multiple Proposal Types</h3>
-            <p>Create resolutions, treasury transfers, governance token minting, and parameter change proposals.</p>
+            <p>Create resolutions, treasury transfers, governance token minting, parameter changes, and distribution proposals.</p>
         </div>
         <div class="feature-card">
             <h3>Flexible Support Thresholds</h3>
@@ -70,41 +50,11 @@ title: Market-Driven Governance
             <h3>ERC1155 Foundation</h3>
             <p>Built on the ERC1155 standard for flexible token management, with token ID 0 reserved for governance tokens.</p>
         </div>
-        <div class="feature-card">
-            <h3>Configurable Parameters via Governance</h3>
-            <p>All major governance parameters can be modified through democratic voting, including support thresholds, quorum requirements, election duration, vesting periods, and token prices.</p>
-        </div>
     </div>
 </section>
 
 <section class="section" id="how-it-works">
     <h2>How It Works</h2>
-
-    <h3>For New Members (Join Request):</h3>
-    <ol>
-        <li>
-            <h3>Connect Wallet</h3>
-            <p>Non-holders connect their wallet to the DAO interface.</p>
-        </li>
-        <li>
-            <h3>Submit Join Request</h3>
-            <p>Provide a description introducing yourself and why you want to join.</p>
-        </li>
-        <li>
-            <h3>Wait for Support</h3>
-            <p>Existing members review your request and add support if they approve.</p>
-        </li>
-        <li>
-            <h3>Election</h3>
-            <p>Once support threshold is met, members vote on your admission.</p>
-        </li>
-        <li>
-            <h3>Admission</h3>
-            <p>If approved, you receive 1 governance token and full DAO access.</p>
-        </li>
-    </ol>
-
-    <h3>For Token Holders (Standard Proposals):</h3>
     <ol>
         <li>
             <h3>Create a Proposal</h3>
@@ -112,53 +62,78 @@ title: Market-Driven Governance
         </li>
         <li>
             <h3>Support Phase</h3>
-            <p>Proposals need to reach a support threshold before triggering an election.</p>
+            <p>Proposals need to reach a support threshold to trigger an election. Tokens used for support are locked to prevent double-counting.</p>
         </li>
         <li>
-            <h3>Election</h3>
-            <p>When triggered, governance token holders can claim voting tokens 1:1 with their vested governance token balance.</p>
+            <h3>Election Period</h3>
+            <p>Once triggered, an election begins. Each governance token holder can claim voting tokens equal to their vested balance.</p>
         </li>
         <li>
-            <h3>Trading Period</h3>
-            <p>During elections, voting tokens can be freely bought and sold.</p>
+            <h3>Vote or Trade</h3>
+            <p>Voting tokens can be used to vote (transfer to YES/NO addresses) or traded with others who feel more strongly.</p>
         </li>
         <li>
-            <h3>Voting</h3>
-            <p>Cast votes by sending voting tokens to YES/NO addresses.</p>
+            <h3>Resolution</h3>
+            <p>After the election period (or early if a clear majority is reached), the proposal is executed or rejected based on results.</p>
         </li>
         <li>
-            <h3>Execution</h3>
-            <p>If the proposal passes and meets quorum, it is automatically executed.</p>
+            <h3>Unlock Tokens</h3>
+            <p>After resolution, users can release their locked governance tokens for future proposals.</p>
         </li>
     </ol>
 </section>
 
 <section class="section" id="implementation">
-    <h2>Implementation Details</h2>
+    <h2>Implementation</h2>
     <p>
-        MarketDAO is built on Solidity with a focus on security and flexibility:
+        MarketDAO is built on Solidity ^0.8.20 with OpenZeppelin libraries, using the ERC1155 multi-token standard for both governance and voting tokens.
     </p>
-    <ul>
-        <li>Built on OpenZeppelin's ERC1155 implementation</li>
-        <li>Proposal lifecycle with support thresholds and voting periods</li>
-        <li>Inherits from ReentrancyGuard for security against reentrancy attacks</li>
-        <li>Separate proposal types for different governance actions</li>
-        <li>Factory pattern for easy proposal creation</li>
-    </ul>
-    
-    <h3>Architecture</h3>
+    <h3>Security Audit</h3>
     <p>
-        The system consists of three main components:
+        MarketDAO has been <strong>audited by <a href="https://hashlock.com/audits/marketdao" target="_blank" rel="noopener">Hashlock Pty Ltd</a></strong> (January 2026). All HIGH severity issues have been resolved.
     </p>
-    <ul>
-        <li><strong>MarketDAO</strong>: The main contract that manages tokens, proposals, and voting</li>
-        <li><strong>Proposal</strong>: Base class for all proposal types with the proposal lifecycle</li>
-        <li><strong>ProposalFactory</strong>: Factory contract for creating different types of proposals</li>
-    </ul>
+    <p style="text-align: center; margin: 20px 0;">
+        <a href="https://hashlock.com/audits/marketdao" target="_blank" rel="noopener">
+            <img src="{{ site.baseurl }}/assets/images/hashlock-badge.png" alt="Audited by Hashlock" style="max-width: 180px;">
+        </a>
+    </p>
+    <p style="text-align: center;">
+        <a href="https://hashlock.com/audits/marketdao" target="_blank" rel="noopener" class="cta-button">View Full Audit Report</a>
+    </p>
+    <h3>Security Features</h3>
+    <div class="feature-grid">
+        <div class="feature-card">
+            <h3>Governance Token Locking</h3>
+            <p>Tokens are locked when used for proposal support or voting claims, preventing double-counting attacks.</p>
+        </div>
+        <div class="feature-card">
+            <h3>Distribution Token Locking</h3>
+            <p>Tokens are locked when registering for distributions, preventing double-claim attacks.</p>
+        </div>
+        <div class="feature-card">
+            <h3>Operator Voting Restrictions</h3>
+            <p>Election-ended checks apply to all transfers, not just direct transfers.</p>
+        </div>
+        <div class="feature-card">
+            <h3>Pro-Rata Distributions</h3>
+            <p>Distribution claims use proportional calculations to prevent pool exhaustion.</p>
+        </div>
+        <div class="feature-card">
+            <h3>Reentrancy Protection</h3>
+            <p>ReentrancyGuard on transfer functions prevents reentrancy during vote transfers.</p>
+        </div>
+        <div class="feature-card">
+            <h3>O(1) Scalability</h3>
+            <p>Snapshot-based voting enables 10,000+ participants with constant gas costs.</p>
+        </div>
+    </div>
+    <p>
+        See the <a href="{{ site.baseurl }}/docs/technical-reference/#security--scalability">Technical Reference</a> for full security details.
+    </p>
 </section>
 
 <section class="section" id="configuration">
-    <h2>Configuration Parameters</h2>
+    <h2>Configuration</h2>
     <p>
         When creating a new DAO, you can configure:
     </p>
@@ -186,7 +161,7 @@ title: Market-Driven Governance
 </section>
 
 <section class="section" id="deployment">
-    <h2>Get Started</h2>
+    <h2>Try It</h2>
     <p>
         MarketDAO is open source and ready for deployment:
     </p>
