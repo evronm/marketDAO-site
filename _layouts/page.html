@@ -8,6 +8,24 @@
     <style>
     {% include styles.css %}
     
+    /* Audit badge in top left corner */
+    .audit-badge-corner {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        z-index: 1000;
+    }
+    
+    .audit-badge-corner img {
+        height: 50px;
+        width: auto;
+        transition: transform 0.2s ease;
+    }
+    
+    .audit-badge-corner img:hover {
+        transform: scale(1.05);
+    }
+    
     /* Additional styles for documentation pages */
     .doc-header {
         padding: 40px 0 20px;
@@ -55,9 +73,24 @@
     body.dark-mode .doc-nav a:hover {
         background-color: #44445a;
     }
+    
+    @media (max-width: 768px) {
+        .audit-badge-corner {
+            top: 10px;
+            left: 10px;
+        }
+        
+        .audit-badge-corner img {
+            height: 35px;
+        }
+    }
     </style>
 </head>
 <body>
+    <a href="https://hashlock.com/audits/marketdao" target="_blank" rel="noopener" class="audit-badge-corner">
+        <img src="{{ site.baseurl }}/assets/images/Secured By Hashlock.png" alt="Secured by Hashlock">
+    </a>
+    
     <button class="mode-toggle" onclick="toggleDarkMode()">Toggle Dark Mode</button>
     
     <header class="doc-header">
