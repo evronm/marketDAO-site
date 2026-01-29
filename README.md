@@ -4,7 +4,7 @@ Website for MarketDAO project, built with Jekyll and hosted on GitHub Pages.
 
 ## Security Status
 
-MarketDAO has been **audited by Hashlock Pty Ltd** (January 2026). All HIGH severity issues have been resolved.
+MarketDAO has been **audited by Hashlock Pty Ltd** (January 2026). All identified issues have been resolved.
 
 ### Key Security Features
 

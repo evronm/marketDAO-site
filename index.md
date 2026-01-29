@@ -90,7 +90,7 @@ title: MarketDAO - Market-Driven Governance
     </p>
     <h3>Security Audit</h3>
     <p>
-        MarketDAO has been <strong>audited by <a href="https://hashlock.com/audits/marketdao" target="_blank" rel="noopener">Hashlock Pty Ltd</a></strong> (January 2026). All HIGH severity issues have been resolved.
+        MarketDAO has been <strong>audited by <a href="https://hashlock.com/audits/marketdao" target="_blank" rel="noopener">Hashlock Pty Ltd</a></strong> (January 2026). All identified issues have been resolved.
     </p>
     <p style="text-align: center; margin: 20px 0;">
         <a href="https://hashlock.com/audits/marketdao" target="_blank" rel="noopener">

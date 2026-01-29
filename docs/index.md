@@ -16,7 +16,7 @@ Welcome to the MarketDAO documentation. This section provides detailed informati
     </a>
 </p>
 
-MarketDAO has been **audited by [Hashlock Pty Ltd](https://hashlock.com/audits/marketdao)** (January 2026). All HIGH severity issues have been resolved. See the [Technical Reference]({{ site.baseurl }}/docs/technical-reference/#security--scalability) for full security details.
+MarketDAO has been **audited by [Hashlock Pty Ltd](https://hashlock.com/audits/marketdao)** (January 2026). All identified issues have been resolved. See the [Technical Reference]({{ site.baseurl }}/docs/technical-reference/#security--scalability) for full security details.
 
 <p style="text-align: center;">
     <a href="https://hashlock.com/audits/marketdao" target="_blank" rel="noopener" class="cta-button">View Full Audit Report</a>
