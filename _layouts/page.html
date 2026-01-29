@@ -9,15 +9,10 @@
     {% include styles.css %}
     
     /* Audit badge styling */
-    .header-title-row {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 20px;
-        margin-bottom: 10px;
-    }
-    
     .audit-badge {
+        position: absolute;
+        left: 20px;
+        top: 40px;
         display: inline-block;
         background-color: var(--primary-color);
         padding: 8px 12px;
@@ -36,19 +31,18 @@
         display: block;
     }
     
-    .header-title-row h1 {
-        margin-bottom: 0;
-    }
-    
     @media (max-width: 768px) {
-        .header-title-row {
-            flex-direction: column;
-            gap: 10px;
+        .audit-badge {
+            position: static;
+            display: block;
+            margin: 0 auto 15px auto;
+            width: fit-content;
         }
     }
     
     /* Additional styles for documentation pages */
     .doc-header {
+        position: relative;
         padding: 40px 0 20px;
         text-align: center;
         border-bottom: 1px solid var(--border-color);
@@ -100,12 +94,10 @@
     <button class="mode-toggle" onclick="toggleDarkMode()">Toggle Dark Mode</button>
     
     <header class="doc-header">
-        <div class="header-title-row">
-            <a href="https://hashlock.com/audits/marketdao" target="_blank" rel="noopener" class="audit-badge">
-                <img src="{{ site.baseurl }}/assets/images/Secured By Hashlock.png" alt="Secured by Hashlock">
-            </a>
-            <h1>{{ site.title }}</h1>
-        </div>
+        <a href="https://hashlock.com/audits/marketdao" target="_blank" rel="noopener" class="audit-badge">
+            <img src="{{ site.baseurl }}/assets/images/Secured By Hashlock.png" alt="Secured by Hashlock">
+        </a>
+        <h1>{{ site.title }}</h1>
         <p class="tagline">{{ site.description }}</p>
         <div>
             <a href="{{ site.baseurl }}/" class="cta-button">Home</a>
